@@ -13,7 +13,7 @@
       "spacing": "medium",
       "size": "default",
       "weight": "bolder",
-      "text": "Welcome to Bot Framework!",
+      "text": "Welcome to Bot Framework! I know how to edit this",
       "wrap": true,
       "maxLines": 0
     },

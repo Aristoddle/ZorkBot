@@ -20,9 +20,10 @@ class LuisHelper {
             }, {}, true);
 
             const recognizerResult = await recognizer.recognize(context);
-
+            // TODO: Figure this out
+            //Okay, so HERE, we are pulling the real shit from LUIS...  
             const intent = LuisRecognizer.topIntent(recognizerResult);
-
+            const lresult = recognizerResult.luisResult;
             bookingDetails.intent = intent;
 
             if (intent === 'Book_flight') {
