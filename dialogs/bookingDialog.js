@@ -33,10 +33,11 @@ class BookingDialog extends CancelAndHelpDialog {
      * If a destination city has not been provided, prompt for one.
      */
     async destinationStep(stepContext) {
-        const bookingDetails = stepContext.options;
+        const actionDetails = stepContext.options;
 
-        if (!bookingDetails.destination) {
-            return await stepContext.prompt(TEXT_PROMPT, { prompt: 'To what city would you like to travel?' });
+        if (actionDetails.destination) {
+            return await stepContext.prompt(TEXT_PROMPT, 
+                { prompt: 'To what city would you like to travel?' });
         } else {
             return await stepContext.next(bookingDetails.destination);
         }
