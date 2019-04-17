@@ -10,8 +10,9 @@ class LuisHelper {
      * @param {TurnContext} context
      */
     static async executeLuisQuery(logger, context) {
-        const bookingDetails = {};
+        const actionDetails = {};
 
+        //try initting LUIS
         try {
             const recognizer = new LuisRecognizer({
                 applicationId: process.env.LuisAppId,
@@ -20,10 +21,15 @@ class LuisHelper {
             }, {}, true);
 
             const recognizerResult = await recognizer.recognize(context);
-
+            // TODO: Figure this out
+            //Okay, so HERE, we are pulling the real shit from LUIS...  
             const intent = LuisRecognizer.topIntent(recognizerResult);
+            const entities = recognizerResult.entities;
+            const text = recognizerResult.text;
 
-            bookingDetails.intent = intent;
+            actionDetails.entities = entities;
+            actionDetails.intent = intent;
+            actionDetails.text = text;
 
             if (intent === 'Book_flight') {
                 // We need to get the result from the LUIS JSON which at every level returns an array
@@ -38,7 +44,7 @@ class LuisHelper {
         } catch (err) {
             logger.warn(`LUIS Exception: ${ err } Check your LUIS configuration`);
         }
-        return bookingDetails;
+        return actionDetails;
     }
 
     static parseCompositeEntity(result, compositeName, entityName) {
