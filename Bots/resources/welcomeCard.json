@@ -28,9 +28,9 @@
   ],
   "actions": [
     {
-      "type": "Action.OpenUrl",
-      "title": "Get an overview",
-      "url": "https://docs.microsoft.com/en-us/azure/bot-service/?view=azure-bot-service-4.0"
+      "type": "Action.Submit",
+      "title": "Launch Zork 1",
+      "data": "Launch Zork 1"
     },
     {
       "type": "Action.OpenUrl",
