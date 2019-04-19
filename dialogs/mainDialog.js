@@ -5,13 +5,10 @@ const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-
 const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
 
-const { CardFactory } = require('botbuilder-core');
-const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
-
+const INIT_GAME_DIALOG = 'initGameDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const TEXT_PROMPT = 'TextPrompt';
-
 const ACTION_PROMPT = "What would you like to do?"
 
 var axios = require('axios');
@@ -25,18 +22,19 @@ class MainDialog extends ComponentDialog {
             logger.log('[MainDialog]: logger not passed in, defaulting to console');
         }
 
-        this.firstStep = true;
+        this.lastLine = "";
 
         this.logger = logger;
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
-        .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
-            this.pickGameStep.bind(this),
+        .addDialog(new WaterfallDialog(INIT_GAME_DIALOG, [
+            this.pickGameStep.bind(this)
+        ])).addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
             this.promptUserStep.bind(this),
-            this.processCommandStep.bind(this),
+            this.processCommandStep.bind(this)
         ]));
 
-        this.initialDialogId = LOOP_GAME_DIALOG;
+        this.initialDialogId = INIT_GAME_DIALOG;
     }
 
 
@@ -62,64 +60,60 @@ class MainDialog extends ComponentDialog {
      * Note that the sample LUIS model will only recognize Paris, Berlin, New York and London as airport cities.
      */
     async pickGameStep(stepContext) {
-        if (this.firstStep) {
-            let gameName = "zork1";
-            let gameCommand  = stepContext.context.activity.text;
+        let gameName = "zork1";
+        let gameCommand  = stepContext.context.activity.text;
 
-            switch(gameCommand) {
-                case "Launch Zork 1":
-                    gameName = "zork1";
-                    break;
-                case "Launch Zork 2":
-                    gameName = "zork2";
-                    break;
-                case "Launch Zork 3":
-                    gameName = "zork3";
-                    break;
-                case "Launch The Hitchhiker\'s Guide to the Galaxy":
-                    gameName = "hike";
-                    break;
-                case "Launch Spellbreaker":
-                    gameName = "spellbreak";
-                    break;
-                case "Launch Wishbringer":
-                    gameName = "wishbring";
-                    break;
-                default:
-                    gameName = "zork1";
-                    break;
-            }
-
-            let loadText = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/start?game=' + gameName)
-                .then(function(response){
-
-                    console.log(response.data); // ex.: { user: 'Your User'}
-                    console.log(response.status); // ex.: 200
-                    return response.data;
-                });
-            await stepContext.context.sendActivity( loadText );
+        switch(gameCommand) {
+            case "Launch Zork 1":
+                gameName = "zork1";
+                break;
+            case "Launch Zork 2":
+                gameName = "zork2";
+                break;
+            case "Launch Zork 3":
+                gameName = "zork3";
+                break;
+            case "Launch The Hitchhiker\'s Guide to the Galaxy":
+                gameName = "hike";
+                break;
+            case "Launch Spellbreaker":
+                gameName = "spellbreak";
+                break;
+            case "Launch Wishbringer":
+                gameName = "wishbring";
+                break;
+            default:
+                gameName = "zork1";
+                break;
         }
-        return await stepContext.next([]);    
-    }
+
+        let loadText = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/start?game=' + gameName)
+            .then(function(response){
+
+                console.log(response.data); // ex.: { user: 'Your User'}
+                console.log(response.status); // ex.: 200
+                return response.data;
+            });
+        await stepContext.context.sendActivity( loadText );
         
+        let firstLine = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/check')
+        .then(function(response){
+            console.log(response.data); // ex.: { user: 'Your User'}
+            console.log(response.status); // ex.: 200
+            return response.data;
+        });
+        await stepContext.context.sendActivity( firstLine );
+        this.lastLine = "What would you like to to?";
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);    
+    }
+
     async promptUserStep(stepContext) {
-        if (this.firstStep) {
-            let firstLine = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/check')
-                .then(function(response){
-                    console.log(response.data); // ex.: { user: 'Your User'}
-                    console.log(response.status); // ex.: 200
-                    return response.data;
-                });
-            await stepContext.context.sendActivity( firstLine );
-            this.firstStep = false;
-        }
-        return await stepContext.prompt('TextPrompt', { prompt: ACTION_PROMPT })
+        return await stepContext.prompt(TEXT_PROMPT, { prompt: this.lastLine });
     }
 
     async processCommandStep(stepContext) {
 
         let command = {};
-
         if (process.env.LuisAppId 
             && process.env.LuisAPIKey 
             && process.env.LuisAPIHostName) {
@@ -134,7 +128,7 @@ class MainDialog extends ComponentDialog {
                 return response.data;
             });
 
-        await stepContext.context.sendActivity( response );
+        this.lastLine = response;
         
         if (command.text == "exit program") {
             return await stepContext.endDialog(stepContext);
