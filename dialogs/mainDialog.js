@@ -22,6 +22,7 @@ class MainDialog extends ComponentDialog {
             logger.log('[MainDialog]: logger not passed in, defaulting to console');
         }
 
+        this.newGameRegex = new RegExp('[~Launch Zork 1|~Launch Zork 2|~Launch Zork 3|~Launch The Hitchhiker\'s Guide to the Galaxy|~Launch Spellbreaker|~Launch Wishbringer]$');
         this.lastLine = "";
 
         this.logger = logger;
@@ -29,7 +30,8 @@ class MainDialog extends ComponentDialog {
         this.addDialog(new TextPrompt(TEXT_PROMPT))
         .addDialog(new WaterfallDialog(INIT_GAME_DIALOG, [
             this.pickGameStep.bind(this)
-        ])).addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
+        ]))
+        .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
             this.promptUserStep.bind(this),
             this.processCommandStep.bind(this)
         ]));
@@ -64,22 +66,22 @@ class MainDialog extends ComponentDialog {
         let gameCommand  = stepContext.context.activity.text;
 
         switch(gameCommand) {
-            case "Launch Zork 1":
+            case "~Launch Zork 1":
                 gameName = "zork1";
                 break;
-            case "Launch Zork 2":
+            case "~Launch Zork 2":
                 gameName = "zork2";
                 break;
-            case "Launch Zork 3":
+            case "~Launch Zork 3":
                 gameName = "zork3";
                 break;
-            case "Launch The Hitchhiker\'s Guide to the Galaxy":
+            case "~Launch The Hitchhiker\'s Guide to the Galaxy":
                 gameName = "hike";
                 break;
-            case "Launch Spellbreaker":
+            case "~Launch Spellbreaker":
                 gameName = "spellbreak";
                 break;
-            case "Launch Wishbringer":
+            case "~Launch Wishbringer":
                 gameName = "wishbring";
                 break;
             default:
@@ -119,6 +121,10 @@ class MainDialog extends ComponentDialog {
             && process.env.LuisAPIHostName) {
             command = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
             this.logger.log('LUIS extracted these command details: ', command);
+        }
+
+        if (command.text.match(this.newGameRegex)) {
+            return await stepContext.replaceDialog(INIT_GAME_DIALOG, stepContext);
         }
 
         let response = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/action?cmd=' + encodeURIComponent(command.text))

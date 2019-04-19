@@ -30,32 +30,32 @@
     {
       "type": "Action.Submit",
       "title": "Play Zork 1",
-      "data": "Launch Zork 1"
+      "data": "~Launch Zork 1"
     },
     {
       "type": "Action.Submit",
       "title": "Play Zork 2",
-      "data": "Launch Zork 2"
+      "data": "~Launch Zork 2"
     },
     {
       "type": "Action.Submit",
       "title": "Play Zork 3",
-      "data": "Launch Zork 3"
+      "data": "~Launch Zork 3"
     },
     {
       "type": "Action.Submit",
       "title": "Play The Hitchhiker's Guide ",
-      "data": "Launch The Hitchhiker's Guide to the Galaxy"
+      "data": "~Launch The Hitchhiker's Guide to the Galaxy"
     },
     {
       "type": "Action.Submit",
       "title": "Play Spellbreaker",
-      "data": "Launch Spellbreaker"
+      "data": "~Launch Spellbreaker"
     },
     {
       "type": "Action.Submit",
       "title": "Play Wishbringer",
-      "data": "Launch Wishbringer"
+      "data": "~Launch Wishbringer"
     }
   ]
 }
