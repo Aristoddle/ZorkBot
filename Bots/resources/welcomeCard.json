@@ -29,18 +29,33 @@
   "actions": [
     {
       "type": "Action.Submit",
-      "title": "Launch Zork 1",
+      "title": "Play Zork 1",
       "data": "Launch Zork 1"
     },
     {
-      "type": "Action.OpenUrl",
-      "title": "Ask a question",
-      "url": "https://stackoverflow.com/questions/tagged/botframework"
+      "type": "Action.Submit",
+      "title": "Play Zork 2",
+      "data": "Launch Zork 2"
     },
     {
-      "type": "Action.OpenUrl",
-      "title": "Learn how to deploy",
-      "url": "https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-deploy-azure?view=azure-bot-service-4.0"
+      "type": "Action.Submit",
+      "title": "Play Zork 3",
+      "data": "Launch Zork 3"
+    },
+    {
+      "type": "Action.Submit",
+      "title": "Play The Hitchhiker's Guide ",
+      "data": "Launch The Hitchhiker's Guide to the Galaxy"
+    },
+    {
+      "type": "Action.Submit",
+      "title": "Play Spellbreaker",
+      "data": "Launch Spellbreaker"
+    },
+    {
+      "type": "Action.Submit",
+      "title": "Play Wishbringer",
+      "data": "Launch Wishbringer"
     }
   ]
 }
