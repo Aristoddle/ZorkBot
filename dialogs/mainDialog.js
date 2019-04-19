@@ -2,12 +2,19 @@
 // Licensed under the MIT License.
 
 const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-expression');
-const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, WaterfallDialog } = require('botbuilder-dialogs');
-const { BookingDialog } = require('./bookingDialog');
+const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
 
-const MAIN_WATERFALL_DIALOG = 'mainWaterfallDialog';
-const BOOKING_DIALOG = 'bookingDialog';
+const { CardFactory } = require('botbuilder-core');
+const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
+
+
+const LOOP_GAME_DIALOG = 'loopGameDialog';
+const TEXT_PROMPT = 'TextPrompt';
+
+const ACTION_PROMPT = "What would you like to do?"
+
+var axios = require('axios');
 
 class MainDialog extends ComponentDialog {
     constructor(logger) {
@@ -18,19 +25,18 @@ class MainDialog extends ComponentDialog {
             logger.log('[MainDialog]: logger not passed in, defaulting to console');
         }
 
+        this.firstStep = true;
+
         this.logger = logger;
 
-        // Define the main dialog and its related components.
-        // This is a sample "book a flight" dialog.
-        this.addDialog(new TextPrompt('TextPrompt'))
-            .addDialog(new BookingDialog(BOOKING_DIALOG))
-            .addDialog(new WaterfallDialog(MAIN_WATERFALL_DIALOG, [
-                this.introStep.bind(this),
-                this.actStep.bind(this),
-                this.finalStep.bind(this)
-            ]));
+        this.addDialog(new TextPrompt(TEXT_PROMPT))
+        .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
+            this.pickGameStep.bind(this),
+            this.promptUserStep.bind(this),
+            this.processCommandStep.bind(this),
+        ]));
 
-        this.initialDialogId = MAIN_WATERFALL_DIALOG;
+        this.initialDialogId = LOOP_GAME_DIALOG;
     }
 
 
@@ -55,59 +61,87 @@ class MainDialog extends ComponentDialog {
      * Currently, this expects a booking request, like "book me a flight from Paris to Berlin on march 22"
      * Note that the sample LUIS model will only recognize Paris, Berlin, New York and London as airport cities.
      */
-    async introStep(stepContext) {
-        if (!process.env.LuisAppId || !process.env.LuisAPIKey || !process.env.LuisAPIHostName) {
-            await stepContext.context.sendActivity('NOTE: LUIS is not configured. To enable all capabilities, add `LuisAppId`, `LuisAPIKey` and `LuisAPIHostName` to the .env file.');
-            return await stepContext.next();
-        }
+    async pickGameStep(stepContext) {
+        if (this.firstStep) {
+            let gameName = "zork1";
+            let gameCommand  = stepContext.context.activity.text;
 
-        return await stepContext.prompt('TextPrompt', { prompt: 'What can I help you with today?\nSay something like "Book a flight from Paris to Berlin on March 22"' });
+            switch(gameCommand) {
+                case "Launch Zork 1":
+                    gameName = "zork1";
+                    break;
+                case "Launch Zork 2":
+                    gameName = "zork2";
+                    break;
+                case "Launch Zork 3":
+                    gameName = "zork3";
+                    break;
+                case "Launch The Hitchhiker\'s Guide to the Galaxy":
+                    gameName = "hike";
+                    break;
+                case "Launch Spellbreaker":
+                    gameName = "spellbreak";
+                    break;
+                case "Launch Wishbringer":
+                    gameName = "wishbring";
+                    break;
+                default:
+                    gameName = "zork1";
+                    break;
+            }
+
+            let loadText = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/start?game=' + gameName)
+                .then(function(response){
+
+                    console.log(response.data); // ex.: { user: 'Your User'}
+                    console.log(response.status); // ex.: 200
+                    return response.data;
+                });
+            await stepContext.context.sendActivity( loadText );
+        }
+        return await stepContext.next([]);    
+    }
+        
+    async promptUserStep(stepContext) {
+        if (this.firstStep) {
+            let firstLine = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/check')
+                .then(function(response){
+                    console.log(response.data); // ex.: { user: 'Your User'}
+                    console.log(response.status); // ex.: 200
+                    return response.data;
+                });
+            await stepContext.context.sendActivity( firstLine );
+            this.firstStep = false;
+        }
+        return await stepContext.prompt('TextPrompt', { prompt: ACTION_PROMPT })
     }
 
-    /**
-     * Second step in the waterall.  This will use LUIS to attempt to extract the origin, destination and travel dates.
-     * Then, it hands off to the bookingDialog child dialog to collect any remaining details.
-     */
-    async actStep(stepContext) {
-        let bookingDetails = {};
+    async processCommandStep(stepContext) {
 
-        if (process.env.LuisAppId && process.env.LuisAPIKey && process.env.LuisAPIHostName) {
-            // Call LUIS and gather any potential booking details.
-            // This will attempt to extract the origin, destination and travel date from the user's message
-            // and will then pass those values into the booking dialog
-            bookingDetails = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
+        let command = {};
 
-            this.logger.log('LUIS extracted these booking details:', bookingDetails);
+        if (process.env.LuisAppId 
+            && process.env.LuisAPIKey 
+            && process.env.LuisAPIHostName) {
+            command = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
+            this.logger.log('LUIS extracted these command details: ', command);
         }
 
-        // In this sample we only have a single intent we are concerned with. However, typically a scenario
-        // will have multiple different intents each corresponding to starting a different child dialog.
+        let response = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/action?cmd=' + encodeURIComponent(command.text))
+            .then(function(response){
+                console.log(response.data); // ex.: { user: 'Your User'}
+                console.log(response.status); // ex.: 200
+                return response.data;
+            });
 
-        // Run the BookingDialog giving it whatever details we have from the LUIS call, it will fill out the remainder.
-        return await stepContext.beginDialog('bookingDialog', bookingDetails);
-    }
-
-    /**
-     * This is the final step in the main waterfall dialog.
-     * It wraps up the sample "book a flight" interaction with a simple confirmation.
-     */
-    async finalStep(stepContext) {
-        // If the child dialog ("bookingDialog") was cancelled or the user failed to confirm, the Result here will be null.
-        if (stepContext.result) {
-            const result = stepContext.result;
-            // Now we have all the booking details.
-
-            // This is where calls to the booking AOU service or database would go.
-
-            // If the call to the booking service was successful tell the user.
-            const timeProperty = new TimexProperty(result.travelDate);
-            const travelDateMsg = timeProperty.toNaturalLanguage(new Date(Date.now()));
-            const msg = `I have you booked to ${ result.destination } from ${ result.origin } on ${ travelDateMsg }.`;
-            await stepContext.context.sendActivity(msg);
+        await stepContext.context.sendActivity( response );
+        
+        if (command.text == "exit program") {
+            return await stepContext.endDialog(stepContext);
+            
         } else {
-            await stepContext.context.sendActivity('Thank you.');
+            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
-        return await stepContext.endDialog();
     }
 }
 
