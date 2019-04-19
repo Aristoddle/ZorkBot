@@ -9,6 +9,9 @@ const { LuisHelper } = require('./luisHelper');
 const MAIN_WATERFALL_DIALOG = 'mainWaterfallDialog';
 const BOOKING_DIALOG = 'bookingDialog';
 
+const { CardFactory } = require('botbuilder-core');
+const WelcomeCard = require('./resources/welcomeCard.json');
+
 class MainDialog extends ComponentDialog {
     constructor(logger) {
         super('MainDialog');
@@ -61,7 +64,11 @@ class MainDialog extends ComponentDialog {
             return await stepContext.next();
         }
 
-        return await stepContext.prompt('TextPrompt', { prompt: 'What can I help you with today?\nSay something like "Book a flight from Paris to Berlin on March 22"' });
+        const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
+        
+        await context.sendActivity({ attachments: [welcomeCard] });
+
+        return await stepContext.prompt('TextPrompt', { prompt: 'From here on out, you\'ll be heading on on your own.  Are you sure you\'re readay?"' });
     }
 
     /**

@@ -9,6 +9,7 @@ class DialogAndWelcomeBot extends DialogBot {
     constructor(conversationState, userState, dialog, logger) {
         super(conversationState, userState, dialog, logger);
 
+        // the card is attached to the activity... 
         this.onMembersAdded(async context => {
             const membersAdded = context.activity.membersAdded;
             for (let cnt = 0; cnt < membersAdded.length; cnt++) {

@@ -30,17 +30,18 @@
     {
       "type": "Action.Submit",
       "title": "Launch Zork 1",
-      "data": "Launch Zork 1"
+
+      "data": "LoadZorkOne"
     },
     {
-      "type": "Action.OpenUrl",
-      "title": "Ask a question",
-      "url": "https://stackoverflow.com/questions/tagged/botframework"
+      "type": "Action.Submit",
+      "title": "Launch Wishbringer",
+      "data": "LoadWishbringer"
     },
     {
-      "type": "Action.OpenUrl",
-      "title": "Learn how to deploy",
-      "url": "https://docs.microsoft.com/en-us/azure/bot-service/bot-builder-howto-deploy-azure?view=azure-bot-service-4.0"
+      "type": "Action.Submit",
+      "title": "Launch The Hitchiker's Guide",
+      "data": "LoadHitchGuide"
     }
   ]
 }
