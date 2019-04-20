@@ -61,6 +61,21 @@ class MainDialog extends ComponentDialog {
      * Currently, this expects a booking request, like "book me a flight from Paris to Berlin on march 22"
      * Note that the sample LUIS model will only recognize Paris, Berlin, New York and London as airport cities.
      */
+
+    async setUserStep(stepContext) {
+        if (session.message && session.message.entities){
+            var userInfo = session.message.entities.find((e) => {
+                return e.type === 'UserInfo';
+            });
+    
+        if (userInfo) {
+            var email = userInfo.UserEmail;
+
+            if(email && email !== ''){
+                //if this is the case, we can use email to set state...
+            }
+        }
+
     async pickGameStep(stepContext) {
         let gameName = "zork1";
         let gameCommand  = stepContext.context.activity.text;
