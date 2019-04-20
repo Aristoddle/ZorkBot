@@ -8,6 +8,7 @@ const { LuisHelper } = require('./luisHelper');
 
 const INIT_GAME_DIALOG = 'initGameDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
+const ASK_EMAIL_DIALOG = 'askEmailDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const ACTION_PROMPT = "What would you like to do?"
 
@@ -27,10 +28,32 @@ class MainDialog extends ComponentDialog {
 
         this.logger = logger;
 
+        //TODO:
+
+        /*
+          *
+          So, the first dialog flow (init game dialog), should try to get
+          your email, so that i can use it to block out storage.
+          It should have a few functions that loop until we have found it.
+
+          After it has been found, we can hot-jump down to the 
+          "select game and save file" dialogues (which I hope to expand
+            using cards)
+
+          And after that, only then do we go down to the acutal gameplay 
+          loops.
+
+          Once in the gameplay loop, I'll just need to beat each of these
+          games repeatedly, and hammer out the LUIS inputs for them.
+          
+           */
         this.addDialog(new TextPrompt(TEXT_PROMPT))
         .addDialog(new WaterfallDialog(INIT_GAME_DIALOG, [
+            this.setUserStep.bind(this),
             this.pickGameStep.bind(this)
-        ]))
+        ])).addDialog(new WaterfallDialog(ASK_EMAIL_DIALOG), [
+            this.validateUserEmail.bind(this)
+        ])
         .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
             this.promptUserStep.bind(this),
             this.processCommandStep.bind(this)
@@ -56,12 +79,9 @@ class MainDialog extends ComponentDialog {
         }
     }
 
-    /**
-     * First step in the waterfall dialog. Prompts the user for a command.
-     * Currently, this expects a booking request, like "book me a flight from Paris to Berlin on march 22"
-     * Note that the sample LUIS model will only recognize Paris, Berlin, New York and London as airport cities.
-     */
-
+    // setting users and picking games are going to be some of the more
+    // dynamic thigns that I do... Hopefully I can make custom cards for 
+    // them
     async setUserStep(stepContext) {
         if (session.message && session.message.entities){
             var userInfo = session.message.entities.find((e) => {
@@ -72,8 +92,18 @@ class MainDialog extends ComponentDialog {
             var email = userInfo.UserEmail;
 
             if(email && email !== ''){
-                //if this is the case, we can use email to set state...
+                let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + email)
+                    .then(function(response){
+                        console.log(response.data);
+                        console.log(response.status);
+                        return response.data;
+                    });
+                // say hello to the new person.  
+                stepContext.next(stepContext);              
             }
+        }
+        else {
+            stepContext.replaceDialog()
         }
 
     async pickGameStep(stepContext) {
