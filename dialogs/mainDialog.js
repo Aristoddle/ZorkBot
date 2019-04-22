@@ -5,8 +5,8 @@ const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-
 const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
 
-
-// const WelcomeCard = require('../resources/welcomeCard.json');
+const { CardFactory } = require('botbuilder-core');
+const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
 
 const GET_INFO_DIALOG = 'getInfoDialog';
@@ -64,6 +64,7 @@ class MainDialog extends ComponentDialog {
     async run(context, accessor) {
         const dialogSet = new DialogSet(accessor);
         dialogSet.add(this);
+        
 
         const dialogContext = await dialogSet.createContext(context);
         const results = await dialogContext.continueDialog();
@@ -137,6 +138,48 @@ class MainDialog extends ComponentDialog {
         }
     }
 
+    async buildCard(gameTitle, saveList) {
+        let newAdaptiveCard = 
+        {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.0",
+            "body": [
+              {
+                "type": "Image",
+                "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtB3AwMUeNoq4gUBGe6Ocj8kyh3bXa9ZbV7u1fVKQoyKFHdkqU",
+                "size": "stretch"
+              },
+              {
+                "type": "TextBlock",
+                "spacing": "medium",
+                "size": "default",
+                "weight": "bolder",
+                "text": `Loading ${gameTitle}`,
+                "wrap": true,
+                "maxLines": 0
+              },
+              {
+                "type": "TextBlock",
+                "size": "default",
+                "isSubtle": "yes",
+                "text": `${saveList.length == 0? "It looks like this is the first time that you've played this game.  I'm going to set up a profile for you under \"AutoSave\".  If you want to create another save file, just issue a command to do so in-game!" : "You appear to have at least one save file set up for this account.  Please select the save file that you would like to continue playing on"}`,
+                "wrap": true,
+                "maxLines": 0
+              }
+            ],
+            "actions": []
+        }
+        for (var file in saveList) {
+            newAdaptiveCard.append({
+                "type": "Action.Submit",
+                "title": saveList[file],
+                "data": `Load game\: ${saveList[file]}`
+            });
+        }
+        return newAdaptiveCard; 
+    }
+
     // setting users and picking games are going to be some of the more
     // dynamic thigns that I do... Hopefully I can make custom cards for 
     // them
@@ -160,6 +203,32 @@ class MainDialog extends ComponentDialog {
         this.zork1          = await newUserResponse.zork1;
         this.zork2          = await newUserResponse.zork2;
         this.zork3          = await newUserResponse.zork3;
+
+        switch(this.title) {
+            case "zork1":
+                this.adaptiveCard = await this.buildCard(this.title, this.zork1);
+                break;
+            case "zork2":
+                this.adaptiveCard = await this.buildCard(this.title, this.zork2);
+                break;
+            case "zork3":
+                this.adaptiveCard = await this.buildCard(this.title, this.zork3);
+                break;
+            case "hike":
+                this.adaptiveCard = await this.buildCard(this.title, this.hike);
+                break;
+            case "spellbreak":
+                this.adaptiveCard = await this.buildCard(this.title, this.spell);
+                break;
+            case "wishbring":
+                this.adaptiveCard = await this.buildCard(this.title, this.wish);
+                break;
+            default:
+                this.adaptiveCard = await this.buildCard(this.title, this.zork1);
+                break;
+        }
+        const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard);
+        await stepContext.context.sendActivity({ attachments: [pickSaveCard] });
 
         let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
         .then(response => {
