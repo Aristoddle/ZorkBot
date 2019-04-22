@@ -157,7 +157,6 @@ class MainDialog extends ComponentDialog {
         }
     }
 
-
     // setting users and picking games are going to be some of the more
     // dynamic thigns that I do... Hopefully I can make custom cards for 
     // them
@@ -177,9 +176,9 @@ class MainDialog extends ComponentDialog {
         }
     }
 
+    async initUserStep(stepContext) {
         // some other step
-
-        let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + stepContext.context.activity.text)
+        let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + this.userEmail)
             .then(response => {
                 console.log(response.data);
                 console.log(response.status);
