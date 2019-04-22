@@ -6,7 +6,11 @@ const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt,
 const { LuisHelper } = require('./luisHelper');
 
 
-const INIT_GAME_DIALOG = 'initGameDialog';
+// const WelcomeCard = require('../resources/welcomeCard.json');
+
+
+const GET_INFO_DIALOG = 'getInfoDialog';
+const PICK_GAME_DIALOG = 'pickGameDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const ACTION_PROMPT = "What would you like to do?"
@@ -21,22 +25,34 @@ class MainDialog extends ComponentDialog {
             logger = console;
             logger.log('[MainDialog]: logger not passed in, defaulting to console');
         }
-
-        this.newGameRegex = new RegExp('[~Launch Zork 1|~Launch Zork 2|~Launch Zork 3|~Launch The Hitchhiker\'s Guide to the Galaxy|~Launch Spellbreaker|~Launch Wishbringer]$');
         this.lastLine = "";
 
         this.logger = logger;
+        this.prompt = "What should we do\?";
 
-        this.addDialog(new TextPrompt(TEXT_PROMPT))
-        .addDialog(new WaterfallDialog(INIT_GAME_DIALOG, [
-            this.pickGameStep.bind(this)
-        ]))
-        .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
-            this.promptUserStep.bind(this),
+        this.userEmail      = null
+
+        this.newUser        = true;
+        this.lastSaveFile   = "AutoSave";
+        this.hike           = [];
+        this.spell          = [];
+        this.wish           = [];
+        this.zork1          = [];
+        this.zork2          = [];
+        this.zork3          = [];
+
+        this.title          = null;
+        this.newGameCommand = null;
+
+        this.addDialog(new TextPrompt(TEXT_PROMPT)).addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
+            this.pickGameStep.bind(this),
+            this.initUserStep.bind(this)
+        ])).addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
+            this.firstStepWrapperStep.bind(this),
             this.processCommandStep.bind(this)
         ]));
 
-        this.initialDialogId = INIT_GAME_DIALOG;
+        this.initialDialogId = GET_INFO_DIALOG;
     }
 
 
@@ -56,61 +72,113 @@ class MainDialog extends ComponentDialog {
         }
     }
 
-    /**
-     * First step in the waterfall dialog. Prompts the user for a command.
-     * Currently, this expects a booking request, like "book me a flight from Paris to Berlin on march 22"
-     * Note that the sample LUIS model will only recognize Paris, Berlin, New York and London as airport cities.
-     */
     async pickGameStep(stepContext) {
-        let gameName = "zork1";
-        let gameCommand  = stepContext.context.activity.text;
 
-        switch(gameCommand) {
-            case "~Launch Zork 1":
-                gameName = "zork1";
+        switch(await stepContext.context.activity.text) {
+            case "Launch Zork 1":
+                this.title = await "zork1";
                 break;
-            case "~Launch Zork 2":
-                gameName = "zork2";
+            case "Launch Zork 2":
+                this.title = await "zork2";
                 break;
-            case "~Launch Zork 3":
-                gameName = "zork3";
+            case "Launch Zork 3":
+                this.title = await "zork3";
                 break;
-            case "~Launch The Hitchhiker\'s Guide to the Galaxy":
-                gameName = "hike";
+            case "Launch The Hitchhiker\'s Guide to the Galaxy":
+                this.title = await "hike";
                 break;
-            case "~Launch Spellbreaker":
-                gameName = "spellbreak";
+            case "Launch Spellbreaker":
+                this.title = await "spellbreak";
                 break;
-            case "~Launch Wishbringer":
-                gameName = "wishbring";
+            case "Launch Wishbringer":
+                this.title = await "wishbring";
                 break;
             default:
-                gameName = "zork1";
+                this.title = await "zork1";
                 break;
         }
+        if (this.userEmail != null) {
+            stepContext.next(stepContext)
+        }
 
-        let loadText = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/start?game=' + gameName)
-            .then(function(response){
+        if (stepContext.message && stepContext.message.entities){
+            var userInfo = stepContext.message.entities.find((e) => {
+                return e.type === 'UserInfo';
+            });
 
-                console.log(response.data); // ex.: { user: 'Your User'}
-                console.log(response.status); // ex.: 200
+            if (userInfo) {
+                var email = userInfo.UserEmail;
+
+                if(email && email !== ''){
+                    let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + email)
+                        .then(response => {
+                            console.log(response.data);
+                            console.log(response.status);
+                            return response.data;
+                        });
+
+                    //set all user info from the return... 
+                    this.userEmail      = await newUserResponse.userEmail;
+                    this.newUser        = await newUserResponse.newUser;
+                    this.lastSaveFile   = await newUserResponse.lastSaveFile;
+                    this.hike           = await newUserResponse.hike;
+                    this.spell          = await newUserResponse.spell;
+                    this.wish           = await newUserResponse.wish;
+                    this.zork1          = await newUserResponse.zork1;
+                    this.zork2          = await newUserResponse.zork2;
+                    this.zork3          = await newUserResponse.zork3;
+
+                    // say hello to the new person.
+                    stepContext.next(stepContext);
+                }
+            }
+        } else {
+            return await stepContext.prompt(TEXT_PROMPT, { prompt: "It appears that the bot can't find an email to auto-gen you an account... please enter an email, account name, or some other identifier, and I\'ll use it to store your saves in a consistent location" });
+        }
+    }
+
+    // setting users and picking games are going to be some of the more
+    // dynamic thigns that I do... Hopefully I can make custom cards for 
+    // them
+    async initUserStep(stepContext) {
+        // some other step
+
+        let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + stepContext.context.activity.text)
+            .then(response => {
+                console.log(response.data);
+                console.log(response.status);
                 return response.data;
             });
-        await stepContext.context.sendActivity( loadText );
-        
-        let firstLine = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/check')
-        .then(function(response){
+
+        //Once you've gotten email, 
+        //set all user info from the return... 
+        this.userEmail      = await newUserResponse.userEmail;
+        this.lastSaveFile   = await newUserResponse.lastSaveFile;
+        this.hike           = await newUserResponse.hike;
+        this.spell          = await newUserResponse.spell;
+        this.wish           = await newUserResponse.wish;
+        this.zork1          = await newUserResponse.zork1;
+        this.zork2          = await newUserResponse.zork2;
+        this.zork3          = await newUserResponse.zork3;
+
+        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
+        .then(response => {
             console.log(response.data); // ex.: { user: 'Your User'}
             console.log(response.status); // ex.: 200
             return response.data;
         });
-        await stepContext.context.sendActivity( firstLine );
-        this.lastLine = "What would you like to to?";
-        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);    
+        
+        // by here, a user and game should be initted
+        await stepContext.context.sendActivity( startResponse.titleinfo );
+        await stepContext.context.sendActivity( startResponse.firstLine );
+
+        await stepContext.context.sendActivity( "Now it's in your hands. ");
+
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
-    async promptUserStep(stepContext) {
-        return await stepContext.prompt(TEXT_PROMPT, { prompt: this.lastLine });
+    async firstStepWrapperStep(stepContext) {
+        return await stepContext.prompt(TEXT_PROMPT, { prompt: this.prompt });
     }
 
     async processCommandStep(stepContext) {
@@ -123,18 +191,14 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
-        if (command.text.match(this.newGameRegex)) {
-            return await stepContext.replaceDialog(INIT_GAME_DIALOG, stepContext);
-        }
-
-        let response = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/action?cmd=' + encodeURIComponent(command.text))
-            .then(function(response){
+        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
+            .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
                 return response.data;
             });
 
-        this.lastLine = response;
+        this.prompt = await response.cmdOutput;
         
         if (command.text == "exit program") {
             return await stepContext.endDialog(stepContext);

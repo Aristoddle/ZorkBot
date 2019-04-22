@@ -1,4 +1,8 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+
+
+// Enable telemetry collection with Application Insights
+var ai = require('applicationinsights');
+ai.setup(process.env.APPLICATIONINSIGHTSKEY || '5afd73de-431b-48bd-b22e-ae696c3c16ec').start();// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
 // index.js is used to setup and configure your bot
