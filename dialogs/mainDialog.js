@@ -2,19 +2,20 @@
 // Licensed under the MIT License.
 
 const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-expression');
-const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog, ChoicePrompt} = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
 
 const { CardFactory } = require('botbuilder-core');
 const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
 
-const GET_INFO_DIALOG = 'getInfoDialog';
-const CHOOSE_GAME_LOOP = 'chooseGameLoop';
-const LOOP_GAME_DIALOG = 'loopGameDialog';
-const TEXT_PROMPT = 'TextPrompt';
-const CONFIRM_PROMPT = 'ConfirmPrompt';
-const ACTION_PROMPT = "What would you like to do?"
+const GET_INFO_DIALOG   = 'getInfoDialog';
+const PRE_GAME_LOOP     = 'preGameLoop';
+const LOOP_GAME_DIALOG  = 'loopGameDialog';
+const TEXT_PROMPT       = 'TextPrompt';
+const CONFIRM_PROMPT    = 'ConfirmPrompt';
+const CHOICE_PROMPT     = 'ChoicePrompt'
+const ACTION_PROMPT     = "What would you like to do?"
 
 var axios = require('axios');
 
@@ -47,22 +48,23 @@ class MainDialog extends ComponentDialog {
         this.newGameCommand = null;
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
-        .addDialog(new WaterfallDialog(CHOOSE_GAME_LOOP, [
-            this.checkIfGoodInputStep.bind(this),
-            this.loopIfBadStep.bind(this)
+        .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
+        .addDialog(new ChoicePrompt(CHOICE_PROMPT))
+        .addDialog(new WaterfallDialog(PRE_GAME_LOOP, [
+            this.chooseGameStep.bind(this),
+            this.getUserEmailStep.bind(this),
         ]))
         .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
-            this.checkUserEmail.bind(this),
             this.confirmEmailStep.bind(this),
-            this.loopEmailConfirmStep.bind(this),
-            this.initUserStep.bind(this)
+            this.loopConfirmEmailStep.bind(this),
+            this.initUserStep.bind(this),
         ]))
         .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
-            this.firstStepWrapperStep.bind(this),
+            this.firstStepWrapper.bind(this),
             this.processCommandStep.bind(this)
         ]));
 
-        this.initialDialogId = CHOOSE_GAME_LOOP;
+        this.initialDialogId = PRE_GAME_LOOP;
     }
 
 
@@ -82,40 +84,19 @@ class MainDialog extends ComponentDialog {
         }
     }
 
-    async checkIfGoodInputStep(stepContext) {
-        
-        switch(await stepContext.context.activity.text) {
-            case "Launch Zork 1":
-                this.title = await "zork1";
-                break;
-            case "Launch Zork 2":
-                this.title = await "zork2";
-                break;
-            case "Launch Zork 3":
-                this.title = await "zork3";
-                break;
-            case "Launch The Hitchhiker\'s Guide to the Galaxy":
-                this.title = await "hike";
-                break;
-            case "Launch Spellbreaker":
-                this.title = await "spellbreak";
-                break;
-            case "Launch Wishbringer":
-                this.title = await "wishbring";
-                break;
-            default:
-                return await stepContext.prompt(TEXT_PROMPT, { prompt: "That game wasn't recognized.  Please select a game from the provided list." });
-                break;
-        }
-        return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
+    async chooseGameStep(stepContext) {
+
+        return await stepContext.prompt(CHOICE_PROMPT, {
+            prompt: "Hi!  Thanks so much for demoing my Senior Project.  Select a game from the list below and we can begin",
+            retryPrompt: "You need to select one of the listed games to play.",
+            choices: ['Zork One', 'Zork Two', 'The Hitchhiker\'s Guide to the Galaxy', 'Spellbreaker', 'Wishbringer']});
     }
 
-    async loopIfBadStep(stepContext) { 
-        return await stepContext.replaceDialog(CHOOSE_GAME_LOOP, []);
-    }
+    async getUserEmailStep(stepContext) {
 
+        //get the title they're playing from the previous call
+        this.title = stepContext.result;
 
-    async checkUserEmail(stepContext) {
         // email was set earlier in the loop
         if (this.userEmail != null) {
             stepContext.next(stepContext)
@@ -162,13 +143,13 @@ class MainDialog extends ComponentDialog {
     // them
     async confirmEmailStep(stepContext) {
         this.userEmail = stepContext.context.activity.text;
-        stepContext.prompt(CONFIRM_PROMPT, {prompt: `I'm going to set up an account for you at ${this.userEmail}.  Is that Okay?`});
+        stepContext.prompt(CONFIRM_PROMPT, {prompt: `I'm going to set up an account for you at ${this.userEmail}.  Is that Okay\?`});
     }
 
-    async loopEmailConfirmStep(stepContext) {
-        if (stepContext.context.text) { 
+    async loopConfirmEmailStep(stepContext) {
+        if (stepContext.result) { 
             stepContext.context.sendActivity(`Registering ${this.userEmail}`);
-            stepContext.next([]);
+            stepContext.next(stepContext);
         } else {
             this.userEmail = null;
             this.enterEmailPrompt = "Please enter your preferred account name/email";
@@ -198,31 +179,83 @@ class MainDialog extends ComponentDialog {
 
         switch(this.title) {
             case "zork1":
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork1);
-                break;
+                return await stepContext.prompt(CHOICE_PROMPT, {
+                    prompt: `${zork1.length == 0? 
+                        "Welcome to Zork.  You don't appear to have any saved games on this account, so I'll start you off with a new game.  Please select, type or say \"New Game\" to begin." 
+                        : 
+                        "Please select the save file that you would like to play"
+                    }`,
+                    retryPrompt: "You need to select one of the listed save files.  If you start a New Game, your previous AutoSave will be deleted",
+                    choices: this.zork1 + ["New Game"]
+                });
             case "zork2":
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork2);
-                break;
+                return await stepContext.prompt(CHOICE_PROMPT, {
+                    prompt: `${zork1.length == 0? 
+                        "Welcome to Zork Two: The Wizard of Frobozz.  You don't appear to have any saved games on this account, so I'll start you off with a new game.  Please select, type or say \"New Game\" to begin." 
+                        : 
+                        "Please select the save file that you would like to play"
+                    }`,
+                    retryPrompt: "You need to select one of the listed save files.  If you start a New Game, your previous AutoSave will be deleted",
+                    choices: this.zork2 + ["New Game"]
+                });
             case "zork3":
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork3);
-                break;
+                return await stepContext.prompt(CHOICE_PROMPT, {
+                    prompt: `${zork1.length == 0? 
+                        "Welcome to Zork Three: The Dungeon Master.  You don't appear to have any saved games on this account, so I'll start you off with a new game.  Please select, type or say \"New Game\" to begin." 
+                        : 
+                        "Please select the save file that you would like to play"
+                    }`,
+                    retryPrompt: "You need to select one of the listed save files.  If you start a New Game, your previous AutoSave will be deleted",
+                    choices: this.zork3 + ["New Game"]
+                });
             case "hike":
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.hike);
-                break;
+                return await stepContext.prompt(CHOICE_PROMPT, {
+                    prompt: `${zork1.length == 0? 
+                        "Welcome to The Hitchiker's Guide to the Galaxy (the spoken text adventure).  You don't appear to have any saved games on this account, so I'll start you off with a new game.  Please select, type or say \"New Game\" to begin." 
+                        : 
+                        "Please select the save file that you would like to play"
+                    }`,
+                    retryPrompt: "You need to select one of the listed save files.  If you start a New Game, your previous AutoSave will be deleted",
+                    choices: this.hike + ["New Game"]
+                });
             case "spellbreak":
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.spell);
-                break;
+                return await stepContext.prompt(CHOICE_PROMPT, {
+                    prompt: `${zork1.length == 0? 
+                        "Welcome to Spellbreaker.  You don't appear to have any saved games on this account, so I'll start you off with a new game.  Please select, type or say \"New Game\" to begin." 
+                        : 
+                        "Please select the save file that you would like to play"
+                    }`,
+                    retryPrompt: "You need to select one of the listed save files.  If you start a New Game, your previous AutoSave will be deleted",
+                    choices: this.spell + ["New Game"]
+                });
             case "wishbring":
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.wish);
-                break;
+                return await stepContext.prompt(CHOICE_PROMPT, {
+                    prompt: `${zork1.length == 0? 
+                        "Welcome to Wishbringer: The Magick Stone of Dreams.  You don't appear to have any saved games on this account, so I'll start you off with a new game.  Please select, type or say \"New Game\" to begin." 
+                        : 
+                        "Please select the save file that you would like to play"
+                    }`,
+                    retryPrompt: "You need to select one of the listed save files.  If you start a New Game, your previous AutoSave will be deleted",
+                    choices: this.wish + ["New Game"]
+                });
             default:
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork1);
-                break;
+                return await stepContext.prompt(CHOICE_PROMPT, {
+                    prompt: `${zork1.length == 0? 
+                        "Welcome to Zork One.  You don't appear to have any saved games on this account, so I'll start you off with a new game.  Please select, type or say \"New Game\" to begin." 
+                        : 
+                        "Please select the save file that you would like to play"
+                    }`,
+                    retryPrompt: "You need to select one of the listed save files.  If you start a New Game, your previous AutoSave will be deleted",
+                    choices: this.zork1 + ["New Game"]
+                });
         }
-        const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard);
-        await stepContext.context.sendActivity({ attachments: [pickSaveCard] });
+        
+    }
 
-        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
+    async startGameStep(stepContext) {
+        this.lastSaveFile = stepContext.context.activity.text;
+        
+        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile}`)
         .then(response => {
             console.log(response.data); // ex.: { user: 'Your User'}
             console.log(response.status); // ex.: 200
@@ -236,7 +269,7 @@ class MainDialog extends ComponentDialog {
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
-    async firstStepWrapperStep(stepContext) {
+    async firstStepWrapper(stepContext) {
         return await stepContext.prompt(TEXT_PROMPT, { prompt: this.gameplayPrompt });
     }
 
@@ -250,7 +283,7 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
-        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
+        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile}&action=${command.text}`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
@@ -265,85 +298,6 @@ class MainDialog extends ComponentDialog {
         } else {
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
-    }
-
-    async buildSaveFilesCard(gameTitle, saveList) {
-        let newAdaptiveCard = 
-        {
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "type": "AdaptiveCard",
-            "version": "1.0",
-            "body": [
-              {
-                "type": "Image",
-                "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtB3AwMUeNoq4gUBGe6Ocj8kyh3bXa9ZbV7u1fVKQoyKFHdkqU",
-                "size": "stretch"
-              },
-              {
-                "type": "TextBlock",
-                "spacing": "medium",
-                "size": "default",
-                "weight": "bolder",
-                "text": `Loading ${gameTitle}`,
-                "wrap": true,
-                "maxLines": 0
-              },
-              {
-                "type": "TextBlock",
-                "size": "default",
-                "isSubtle": "yes",
-                "text": `${saveList.length == 0? "It looks like this is the first time that you've played this game.  I'm going to set up a profile for you under \"AutoSave\".  If you want to create another save file, just issue a command to do so in-game!" : "You appear to have at least one save file set up for this account.  Please select the save file that you would like to continue playing on"}`,
-                "wrap": true,
-                "maxLines": 0
-              }
-            ],
-            "actions": []
-        }
-        for (var file in saveList) {
-            newAdaptiveCard.append({
-                "type": "Action.Submit",
-                "title": saveList[file],
-                "data": `Load game\: ${saveList[file]}`
-            });
-        }
-        return newAdaptiveCard; 
-    }
-
-    async yesNoCard(username) {
-        let newAdaptiveCard = 
-        {
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "type": "AdaptiveCard",
-            "version": "1.0",
-            "body": [
-              {
-                "type": "TextBlock",
-                "spacing": "medium",
-                "size": "default",
-                "weight": "bolder",
-                "text": "Account Confirmation:",
-                "wrap": true,
-                "maxLines": 0
-              },
-              {
-                "type": "TextBlock",
-                "size": "default",
-                "isSubtle": "yes",
-                "text": `I'm going to set up an account for you at ${uername}.  Is that Okay?`,
-                "wrap": true,
-                "maxLines": 0
-              }
-            ],
-            "actions": [
-                {"type": "Action.Submit",
-                "title": "Yes",
-                "data": "Yes"},
-                {"type": "Action.Submit",
-                "title": "No",
-                "data": "No"}
-            ]
-        }
-        return newAdaptiveCard;
     }
 }
 

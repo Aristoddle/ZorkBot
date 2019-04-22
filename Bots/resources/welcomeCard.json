@@ -13,7 +13,7 @@
       "spacing": "medium",
       "size": "default",
       "weight": "bolder",
-      "text": "Welcome to Joe Lanzone's Bot for text-based adventure games",
+      "text": "Welcome to the ZorkBot",
       "wrap": true,
       "maxLines": 0
     },
@@ -21,41 +21,9 @@
       "type": "TextBlock",
       "size": "default",
       "isSubtle": "yes",
-      "text": "From here, select a game you would like to play, and we can get started",
+      "text": "My name is Joe Lanzone, and for my Yale Senior Project I built a bot and language model to play interactive fiction from the 70s and 80s as if they were written for the smart-speakers of today.  Hopefully this game works as well for you as it did for me.  Thanks so much for playing, and I hope you have a great time.  ",
       "wrap": true,
       "maxLines": 0
-    }
-  ],
-  "actions": [
-    {
-      "type": "Action.Submit",
-      "title": "Play Zork 1",
-      "data": "Launch Zork 1"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play Zork 2",
-      "data": "Launch Zork 2"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play Zork 3",
-      "data": "Launch Zork 3"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play The Hitchhiker's Guide ",
-      "data": "Launch The Hitchhiker's Guide to the Galaxy"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play Spellbreaker",
-      "data": "Launch Spellbreaker"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play Wishbringer",
-      "data": "Launch Wishbringer"
     }
   ]
 }
