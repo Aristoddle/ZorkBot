@@ -64,7 +64,6 @@ class MainDialog extends ComponentDialog {
     async run(context, accessor) {
         const dialogSet = new DialogSet(accessor);
         dialogSet.add(this);
-        
 
         const dialogContext = await dialogSet.createContext(context);
         const results = await dialogContext.continueDialog();
@@ -95,7 +94,8 @@ class MainDialog extends ComponentDialog {
                 this.title = await "wishbring";
                 break;
             default:
-                this.title = await "zork1";
+                await stepContext.context.sendActivity( "I didn't quite get that.  Please select a game from the card above.");
+                return await stepContext.replaceDialog(PICK_GAME_DIALOG, []);
                 break;
         }
         if (this.userEmail != null) {
