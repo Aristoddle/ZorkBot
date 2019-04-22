@@ -10,7 +10,7 @@ const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
 
 const GET_INFO_DIALOG = 'getInfoDialog';
-const PICK_GAME_DIALOG = 'pickGameDialog';
+const CHOOSE_GAME_LOOP = 'chooseGameLoop';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const ACTION_PROMPT = "What would you like to do?"
@@ -44,15 +44,21 @@ class MainDialog extends ComponentDialog {
         this.title          = null;
         this.newGameCommand = null;
 
-        this.addDialog(new TextPrompt(TEXT_PROMPT)).addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
+        this.addDialog(new TextPrompt(TEXT_PROMPT))
+        .addDialog(new WaterfallDialog(CHOOSE_GAME_LOOP, [
+            this.checkIfGoodInputStep.bind(this),
+            this.loopIfBadStep.bind(this)
+        ]))
+        .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
             this.pickGameStep.bind(this),
             this.initUserStep.bind(this)
-        ])).addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
+        ]))
+        .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
             this.firstStepWrapperStep.bind(this),
             this.processCommandStep.bind(this)
         ]));
 
-        this.initialDialogId = GET_INFO_DIALOG;
+        this.initialDialogId = CHOOSE_GAME_LOOP;
     }
 
 
@@ -72,8 +78,8 @@ class MainDialog extends ComponentDialog {
         }
     }
 
-    async pickGameStep(stepContext) {
-
+    async checkIfGoodInputStep(stepContext) {
+        
         switch(await stepContext.context.activity.text) {
             case "Launch Zork 1":
                 this.title = await "zork1";
@@ -94,10 +100,19 @@ class MainDialog extends ComponentDialog {
                 this.title = await "wishbring";
                 break;
             default:
-                await stepContext.context.sendActivity( "I didn't quite get that.  Please select a game from the card above.");
-                return await stepContext.replaceDialog(PICK_GAME_DIALOG, []);
+                return await stepContext.prompt(TEXT_PROMPT, { prompt: "That game wasn't recognized.  Please select a game from the provided list." });
                 break;
         }
+        return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
+    }
+
+    async loopIfBadStep(stepContext) { 
+        return await stepContext.replaceDialog(CHOOSE_GAME_LOOP, []);
+    }
+
+
+    async pickGameStep(stepContext) {
+        
         if (this.userEmail != null) {
             stepContext.next(stepContext)
         }
@@ -240,8 +255,6 @@ class MainDialog extends ComponentDialog {
         // by here, a user and game should be initted
         await stepContext.context.sendActivity( startResponse.titleinfo );
         await stepContext.context.sendActivity( startResponse.firstLine );
-
-        await stepContext.context.sendActivity( "Now it's in your hands. ");
 
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
