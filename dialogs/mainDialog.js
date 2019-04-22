@@ -1,20 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
+
 const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-expression');
 const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
-
 const { CardFactory } = require('botbuilder-core');
-const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
-
+const PROCESS_SAVE_DIALOG = "saveDialog"
 const GET_INFO_DIALOG = 'getInfoDialog';
 const CHOOSE_GAME_LOOP = 'chooseGameLoop';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
-const ACTION_PROMPT = "What would you like to do?"
 
 var axios = require('axios');
 
@@ -30,7 +29,7 @@ class MainDialog extends ComponentDialog {
 
         this.logger = logger;
         this.gameplayPrompt = "What should we do\?";
-        this.enterEmailPrompt = "It appears that the bot can't find an email to auto-gen you an account... please enter an email, account name, or some other identifier, and I\'ll use it to store your saves in a consistent location";
+        this.enterEmailPrompt = "It appears that the bot can't find an email to auto-gen you an account. Please enter an email, account name, or unique identifier, and I\'ll use it to store your game-saves in a consistent location";
 
         this.userEmail      = null
 
@@ -47,6 +46,7 @@ class MainDialog extends ComponentDialog {
         this.newGameCommand = null;
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
+        .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
         .addDialog(new WaterfallDialog(CHOOSE_GAME_LOOP, [
             this.checkIfGoodInputStep.bind(this),
             this.loopIfBadStep.bind(this)
@@ -55,12 +55,16 @@ class MainDialog extends ComponentDialog {
             this.checkUserEmail.bind(this),
             this.confirmEmailStep.bind(this),
             this.loopEmailConfirmStep.bind(this),
-            this.initUserStep.bind(this)
+            this.initUserStep.bind(this),
+            this.startGameStep.bind(this)
         ]))
         .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
             this.firstStepWrapperStep.bind(this),
             this.processCommandStep.bind(this)
-        ]));
+        ]))
+        .addDialog(new WaterfallDialog(PROCESS_SAVE_DIALOG, [
+            this.saveDialogue.bind(this),
+        ]))
 
         this.initialDialogId = CHOOSE_GAME_LOOP;
     }
@@ -118,7 +122,7 @@ class MainDialog extends ComponentDialog {
     async checkUserEmail(stepContext) {
         // email was set earlier in the loop
         if (this.userEmail != null) {
-            stepContext.next(stepContext)
+            return await stepContext.next(stepContext)
         }
 
         if (stepContext.message && stepContext.message.entities){
@@ -149,7 +153,7 @@ class MainDialog extends ComponentDialog {
                     this.zork3          = await newUserResponse.zork3;
 
                     // say hello to the new person.
-                    stepContext.next(stepContext);
+                    return await stepContext.next(stepContext);
                 }
             }
         } else {
@@ -162,16 +166,16 @@ class MainDialog extends ComponentDialog {
     // them
     async confirmEmailStep(stepContext) {
         this.userEmail = stepContext.context.activity.text;
-        stepContext.prompt(CONFIRM_PROMPT, {prompt: `I'm going to set up an account for you at ${this.userEmail}.  Is that Okay?`});
+        return await stepContext.prompt(CONFIRM_PROMPT, {prompt: `I'm going to set up an account for you at ${this.userEmail}.  Sound good?`});
     }
 
     async loopEmailConfirmStep(stepContext) {
-        if (stepContext.context.text) { 
-            stepContext.context.sendActivity(`Registering ${this.userEmail}`);
-            stepContext.next([]);
+        if (stepContext.result) { 
+            await stepContext.context.sendActivity(`Registering ${this.userEmail}`);
+            return await stepContext.next([]);
         } else {
             this.userEmail = null;
-            this.enterEmailPrompt = "Please enter your preferred account name/email";
+            this.enterEmailPrompt = "Please enter your preferred account name/email.";
             return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
         }
     }
@@ -221,7 +225,11 @@ class MainDialog extends ComponentDialog {
         }
         const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard);
         await stepContext.context.sendActivity({ attachments: [pickSaveCard] });
+        return await stepContext.next([]);
+    }
 
+    async startGameStep(stepContext){
+        // TODO: add capability to delete the Autosave -->New Game
         let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
         .then(response => {
             console.log(response.data); // ex.: { user: 'Your User'}
@@ -258,13 +266,23 @@ class MainDialog extends ComponentDialog {
             });
 
         this.gameplayPrompt = await response.cmdOutput;
-        
         if (command.text == "exit program") {
             return await stepContext.endDialog(stepContext);
-            
         } else {
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
+    }
+
+    async saveDialogue(stepContext) {
+        const saveCheckCard = CardFactory.adaptiveCard(this.adaptiveCard);
+        await stepContext.context.sendActivity({ attachments: [saveCheckCard] });
+
+        // TODO: Set this as a unique call to save manually
+        if (stepContext.context.activity.text == "yes") {
+            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+        }
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+        //do a save --> make it a special call that I just intercept.  
     }
 
     async buildSaveFilesCard(gameTitle, saveList) {
@@ -300,13 +318,57 @@ class MainDialog extends ComponentDialog {
             "actions": []
         }
         for (var file in saveList) {
-            newAdaptiveCard.append({
+            newAdaptiveCard.actions.push({
                 "type": "Action.Submit",
                 "title": saveList[file],
                 "data": `Load game\: ${saveList[file]}`
             });
         }
+
+        newAdaptiveCard.actions.push({
+            "type": "Action.Submit",
+            "title": "New Game",
+            "data": `New Game`
+        });
+
         return newAdaptiveCard; 
+    }
+
+    async saveYesNo() {
+        let newAdaptiveCard = 
+        {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.0",
+            "body": [
+              {
+                "type": "TextBlock",
+                "spacing": "medium",
+                "size": "default",
+                "weight": "bolder",
+                "text": `Save: ${this.userEmail}`,
+                "wrap": true,
+                "maxLines": 0
+              },
+              {
+                "type": "TextBlock",
+                "size": "default",
+                "isSubtle": "yes",
+                "text": `Are you trying to save the game?`,
+                "wrap": true,
+                "maxLines": 0
+              }
+            ],
+            "actions": [
+                {"type": "Action.Submit",
+                "title": "Yes",
+                "data": "Yes"},
+                {"type": "Action.Submit",
+                "title": "No",
+                "data": "No"}
+            ]
+        }
+        return newAdaptiveCard;
     }
 
     async yesNoCard(username) {
