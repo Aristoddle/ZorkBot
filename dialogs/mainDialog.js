@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
+
 const { TimexProperty } = require('@microsoft/recognizers-text-data-types-timex-expression');
 const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
-
 const { CardFactory } = require('botbuilder-core');
-const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
-
+const PROCESS_SAVE_DIALOG = "saveDialog"
 const GET_INFO_DIALOG = 'getInfoDialog';
 const CHOOSE_GAME_LOOP = 'chooseGameLoop';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const TEXT_PROMPT = 'TextPrompt';
-const ACTION_PROMPT = "What would you like to do?"
+const CONFIRM_PROMPT = 'ConfirmPrompt';
 
 var axios = require('axios');
 
@@ -28,7 +28,8 @@ class MainDialog extends ComponentDialog {
         this.lastLine = "";
 
         this.logger = logger;
-        this.prompt = "What should we do\?";
+        this.gameplayPrompt = "What should we do\?";
+        this.enterEmailPrompt = "It appears that the bot can't find an email to auto-gen you an account. Please enter an email, account name, or unique identifier, and I\'ll use it to store your game-saves in a consistent location";
 
         this.userEmail      = null
 
@@ -45,18 +46,25 @@ class MainDialog extends ComponentDialog {
         this.newGameCommand = null;
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
+        .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
         .addDialog(new WaterfallDialog(CHOOSE_GAME_LOOP, [
             this.checkIfGoodInputStep.bind(this),
             this.loopIfBadStep.bind(this)
         ]))
         .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
-            this.pickGameStep.bind(this),
-            this.initUserStep.bind(this)
+            this.checkUserEmail.bind(this),
+            this.confirmEmailStep.bind(this),
+            this.loopEmailConfirmStep.bind(this),
+            this.initUserStep.bind(this),
+            this.startGameStep.bind(this)
         ]))
         .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
             this.firstStepWrapperStep.bind(this),
             this.processCommandStep.bind(this)
-        ]));
+        ]))
+        .addDialog(new WaterfallDialog(PROCESS_SAVE_DIALOG, [
+            this.saveDialogue.bind(this),
+        ]))
 
         this.initialDialogId = CHOOSE_GAME_LOOP;
     }
@@ -111,10 +119,10 @@ class MainDialog extends ComponentDialog {
     }
 
 
-    async pickGameStep(stepContext) {
-        
+    async checkUserEmail(stepContext) {
+        // email was set earlier in the loop
         if (this.userEmail != null) {
-            stepContext.next(stepContext)
+            return await stepContext.next(stepContext)
         }
 
         if (stepContext.message && stepContext.message.entities){
@@ -145,15 +153,139 @@ class MainDialog extends ComponentDialog {
                     this.zork3          = await newUserResponse.zork3;
 
                     // say hello to the new person.
-                    stepContext.next(stepContext);
+                    return await stepContext.next(stepContext);
                 }
             }
         } else {
-            return await stepContext.prompt(TEXT_PROMPT, { prompt: "It appears that the bot can't find an email to auto-gen you an account... please enter an email, account name, or some other identifier, and I\'ll use it to store your saves in a consistent location" });
+            return await stepContext.prompt(TEXT_PROMPT, { prompt:  this.enterEmailPrompt});
         }
     }
 
-    async buildCard(gameTitle, saveList) {
+    // setting users and picking games are going to be some of the more
+    // dynamic thigns that I do... Hopefully I can make custom cards for 
+    // them
+    async confirmEmailStep(stepContext) {
+        this.userEmail = stepContext.context.activity.text;
+        return await stepContext.prompt(CONFIRM_PROMPT, {prompt: `I'm going to set up an account for you at ${this.userEmail}.  Sound good?`});
+    }
+
+    async loopEmailConfirmStep(stepContext) {
+        if (stepContext.result) { 
+            await stepContext.context.sendActivity(`Registering ${this.userEmail}`);
+            return await stepContext.next([]);
+        } else {
+            this.userEmail = null;
+            this.enterEmailPrompt = "Please enter your preferred account name/email.";
+            return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
+        }
+    }
+
+    async initUserStep(stepContext) {
+        // some other step
+        let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + this.userEmail)
+            .then(response => {
+                console.log(response.data);
+                console.log(response.status);
+                return response.data;
+            });
+
+        //Once you've gotten email, 
+        //set all user info from the return... 
+        this.userEmail      = await newUserResponse.userEmail;
+        this.lastSaveFile   = await newUserResponse.lastSaveFile;
+        this.hike           = await newUserResponse.hike;
+        this.spell          = await newUserResponse.spell;
+        this.wish           = await newUserResponse.wish;
+        this.zork1          = await newUserResponse.zork1;
+        this.zork2          = await newUserResponse.zork2;
+        this.zork3          = await newUserResponse.zork3;
+
+        switch(this.title) {
+            case "zork1":
+                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork1);
+                break;
+            case "zork2":
+                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork2);
+                break;
+            case "zork3":
+                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork3);
+                break;
+            case "hike":
+                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.hike);
+                break;
+            case "spellbreak":
+                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.spell);
+                break;
+            case "wishbring":
+                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.wish);
+                break;
+            default:
+                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork1);
+                break;
+        }
+        const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard);
+        await stepContext.context.sendActivity({ attachments: [pickSaveCard] });
+        return await stepContext.next([]);
+    }
+
+    async startGameStep(stepContext){
+        // TODO: add capability to delete the Autosave -->New Game
+        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
+        .then(response => {
+            console.log(response.data); // ex.: { user: 'Your User'}
+            console.log(response.status); // ex.: 200
+            return response.data;
+        });
+        
+        // by here, a user and game should be initted
+        await stepContext.context.sendActivity( startResponse.titleinfo );
+        await stepContext.context.sendActivity( startResponse.firstLine );
+
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+    }
+
+    async firstStepWrapperStep(stepContext) {
+        return await stepContext.prompt(TEXT_PROMPT, { prompt: this.gameplayPrompt });
+    }
+
+    async processCommandStep(stepContext) {
+
+        let command = {};
+        if (process.env.LuisAppId 
+            && process.env.LuisAPIKey 
+            && process.env.LuisAPIHostName) {
+            command = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
+            this.logger.log('LUIS extracted these command details: ', command);
+        }
+
+        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
+            .then(response => {
+                console.log(response.data); // ex.: { user: 'Your User'}
+                console.log(response.status); // ex.: 200
+                return response.data;
+            });
+
+        this.gameplayPrompt = await response.cmdOutput;
+        if (command.text == "exit program") {
+            return await stepContext.endDialog(stepContext);
+        } else {
+            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+        }
+    }
+
+    async saveDialogue(stepContext) {
+        const saveCheckCard = CardFactory.adaptiveCard(this.adaptiveCard);
+        await stepContext.context.sendActivity({ attachments: [saveCheckCard] });
+
+        // TODO: Set this as a unique call to save manually
+        if (stepContext.context.activity.text == "yes") {
+            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+        }
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+        //do a save --> make it a special call that I just intercept.  
+    }
+
+    async buildSaveFilesCard(gameTitle, saveList) {
         let newAdaptiveCard = 
         {
             "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -186,108 +318,94 @@ class MainDialog extends ComponentDialog {
             "actions": []
         }
         for (var file in saveList) {
-            newAdaptiveCard.append({
+            newAdaptiveCard.actions.push({
                 "type": "Action.Submit",
                 "title": saveList[file],
                 "data": `Load game\: ${saveList[file]}`
             });
         }
+
+        newAdaptiveCard.actions.push({
+            "type": "Action.Submit",
+            "title": "New Game",
+            "data": `New Game`
+        });
+
         return newAdaptiveCard; 
     }
 
-    // setting users and picking games are going to be some of the more
-    // dynamic thigns that I do... Hopefully I can make custom cards for 
-    // them
-    async initUserStep(stepContext) {
-        // some other step
-
-        let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + stepContext.context.activity.text)
-            .then(response => {
-                console.log(response.data);
-                console.log(response.status);
-                return response.data;
-            });
-
-        //Once you've gotten email, 
-        //set all user info from the return... 
-        this.userEmail      = await newUserResponse.userEmail;
-        this.lastSaveFile   = await newUserResponse.lastSaveFile;
-        this.hike           = await newUserResponse.hike;
-        this.spell          = await newUserResponse.spell;
-        this.wish           = await newUserResponse.wish;
-        this.zork1          = await newUserResponse.zork1;
-        this.zork2          = await newUserResponse.zork2;
-        this.zork3          = await newUserResponse.zork3;
-
-        switch(this.title) {
-            case "zork1":
-                this.adaptiveCard = await this.buildCard(this.title, this.zork1);
-                break;
-            case "zork2":
-                this.adaptiveCard = await this.buildCard(this.title, this.zork2);
-                break;
-            case "zork3":
-                this.adaptiveCard = await this.buildCard(this.title, this.zork3);
-                break;
-            case "hike":
-                this.adaptiveCard = await this.buildCard(this.title, this.hike);
-                break;
-            case "spellbreak":
-                this.adaptiveCard = await this.buildCard(this.title, this.spell);
-                break;
-            case "wishbring":
-                this.adaptiveCard = await this.buildCard(this.title, this.wish);
-                break;
-            default:
-                this.adaptiveCard = await this.buildCard(this.title, this.zork1);
-                break;
+    async saveYesNo() {
+        let newAdaptiveCard = 
+        {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.0",
+            "body": [
+              {
+                "type": "TextBlock",
+                "spacing": "medium",
+                "size": "default",
+                "weight": "bolder",
+                "text": `Save: ${this.userEmail}`,
+                "wrap": true,
+                "maxLines": 0
+              },
+              {
+                "type": "TextBlock",
+                "size": "default",
+                "isSubtle": "yes",
+                "text": `Are you trying to save the game?`,
+                "wrap": true,
+                "maxLines": 0
+              }
+            ],
+            "actions": [
+                {"type": "Action.Submit",
+                "title": "Yes",
+                "data": "Yes"},
+                {"type": "Action.Submit",
+                "title": "No",
+                "data": "No"}
+            ]
         }
-        const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard);
-        await stepContext.context.sendActivity({ attachments: [pickSaveCard] });
-
-        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
-        .then(response => {
-            console.log(response.data); // ex.: { user: 'Your User'}
-            console.log(response.status); // ex.: 200
-            return response.data;
-        });
-        
-        // by here, a user and game should be initted
-        await stepContext.context.sendActivity( startResponse.titleinfo );
-        await stepContext.context.sendActivity( startResponse.firstLine );
-
-        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+        return newAdaptiveCard;
     }
 
-    async firstStepWrapperStep(stepContext) {
-        return await stepContext.prompt(TEXT_PROMPT, { prompt: this.prompt });
-    }
-
-    async processCommandStep(stepContext) {
-
-        let command = {};
-        if (process.env.LuisAppId 
-            && process.env.LuisAPIKey 
-            && process.env.LuisAPIHostName) {
-            command = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
-            this.logger.log('LUIS extracted these command details: ', command);
+    async yesNoCard(username) {
+        let newAdaptiveCard = 
+        {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.0",
+            "body": [
+              {
+                "type": "TextBlock",
+                "spacing": "medium",
+                "size": "default",
+                "weight": "bolder",
+                "text": "Account Confirmation:",
+                "wrap": true,
+                "maxLines": 0
+              },
+              {
+                "type": "TextBlock",
+                "size": "default",
+                "isSubtle": "yes",
+                "text": `I'm going to set up an account for you at ${uername}.  Is that Okay?`,
+                "wrap": true,
+                "maxLines": 0
+              }
+            ],
+            "actions": [
+                {"type": "Action.Submit",
+                "title": "Yes",
+                "data": "Yes"},
+                {"type": "Action.Submit",
+                "title": "No",
+                "data": "No"}
+            ]
         }
-
-        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
-            .then(response => {
-                console.log(response.data); // ex.: { user: 'Your User'}
-                console.log(response.status); // ex.: 200
-                return response.data;
-            });
-
-        this.prompt = await response.cmdOutput;
-        
-        if (command.text == "exit program") {
-            return await stepContext.endDialog(stepContext);
-            
-        } else {
-            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
-        }
+        return newAdaptiveCard;
     }
 }
 
