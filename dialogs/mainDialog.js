@@ -161,12 +161,12 @@ class MainDialog extends ComponentDialog {
     // dynamic thigns that I do... Hopefully I can make custom cards for 
     // them
     async confirmEmailStep(stepContext) {
-        this.userEmail = stepContext.context.text;
-        stepContext.prompt.(CONFIRM_PROMPT, {prompt: `I'm going to set up an account for you at ${stepContext.context.text}.  Is that Okay?`});
+        this.userEmail = stepContext.context.activity.text;
+        stepContext.prompt(CONFIRM_PROMPT, {prompt: `I'm going to set up an account for you at ${this.userEmail}.  Is that Okay?`});
     }
 
     async loopEmailConfirmStep(stepContext) {
-        if (stepContext.context.text) {= 
+        if (stepContext.context.text) { 
             stepContext.context.sendActivity(`Registering ${this.userEmail}`);
             stepContext.next([]);
         } else {
