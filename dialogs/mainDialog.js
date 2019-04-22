@@ -146,7 +146,6 @@ class MainDialog extends ComponentDialog {
         //Once you've gotten email, 
         //set all user info from the return... 
         this.userEmail      = newUserResponse.userEmail;
-        this.newUser        = newUserResponse.newUser;
         this.lastSaveFile   = newUserResponse.lastSaveFile;
         this.hike           = newUserResponse.hike;
         this.spell          = newUserResponse.spell;
@@ -192,9 +191,8 @@ class MainDialog extends ComponentDialog {
                 return response.data;
             });
 
-        this.title = startResponse.title;
 
-        await stepContext.context.sendActivity( this.title );
+        await stepContext.context.sendActivity( startResponse.titleinfo );
         await stepContext.context.sendActivity( startResponse.firstLine );
 
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);    
@@ -218,7 +216,7 @@ class MainDialog extends ComponentDialog {
             return await stepContext.replaceDialog(INIT_GAME_DIALOG, stepContext);
         }
 
-        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com:443/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
+        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com:443/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
             .then(function(response){
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
