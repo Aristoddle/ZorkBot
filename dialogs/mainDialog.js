@@ -52,9 +52,9 @@ class MainDialog extends ComponentDialog {
             this.loopIfBadStep.bind(this)
         ]))
         .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
+            this.checkUserEmail.bind(this),
             this.confirmEmailStep.bind(this),
             this.loopEmailConfirmStep.bind(this),
-            this.checkUserEmail.bind(this),
             this.initUserStep.bind(this)
         ]))
         .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
