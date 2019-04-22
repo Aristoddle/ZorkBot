@@ -6,6 +6,9 @@ const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt,
 const { LuisHelper } = require('./luisHelper');
 
 
+// const WelcomeCard = require('../resources/welcomeCard.json');
+
+
 const GET_INFO_DIALOG = 'getInfoDialog';
 const PICK_GAME_DIALOG = 'pickGameDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
@@ -22,13 +25,13 @@ class MainDialog extends ComponentDialog {
             logger = console;
             logger.log('[MainDialog]: logger not passed in, defaulting to console');
         }
-
-        this.newGameRegex = new RegExp('[~Launch Zork 1|~Launch Zork 2|~Launch Zork 3|~Launch The Hitchhiker\'s Guide to the Galaxy|~Launch Spellbreaker|~Launch Wishbringer]$');
         this.lastLine = "";
 
         this.logger = logger;
+        this.prompt = "What should we do\?";
 
-        this.userEmail      = "";
+        this.userEmail      = null
+
         this.newUser        = true;
         this.lastSaveFile   = "AutoSave";
         this.hike           = [];
@@ -38,39 +41,14 @@ class MainDialog extends ComponentDialog {
         this.zork2          = [];
         this.zork3          = [];
 
-        this.title      = "";
+        this.title          = null;
+        this.newGameCommand = null;
 
-        this.newGameCommand = "";
-
-        //TODO:
-
-        /*
-          *
-          So, the first dialog flow (init game dialog), should try to get
-          your email, so that i can use it to block out storage.
-          It should have a few functions that loop until we have found it.
-
-          After it has been found, we can hot-jump down to the 
-          "select game and save file" dialogues (which I hope to expand
-            using cards)
-
-          And after that, only then do we go down to the acutal gameplay 
-          loops.
-
-          Once in the gameplay loop, I'll just need to beat each of these
-          games repeatedly, and hammer out the LUIS inputs for them.
-          
-           */
-        this.addDialog(new TextPrompt(TEXT_PROMPT))
-        .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
-            this.setUserStep.bind(this),
-            this.getEmailSetp.bind(this),
-        ]))
-        .addDialog(new WaterfallDialog(PICK_GAME_DIALOG, [
-            this.pickGameStep.bind(this)
-        ]))
-        .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
-            this.promptUserStep.bind(this),
+        this.addDialog(new TextPrompt(TEXT_PROMPT)).addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
+            this.pickGameStep.bind(this),
+            this.initUserStep.bind(this)
+        ])).addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
+            this.firstStepWrapperStep.bind(this),
             this.processCommandStep.bind(this)
         ]));
 
@@ -94,50 +72,79 @@ class MainDialog extends ComponentDialog {
         }
     }
 
-    // setting users and picking games are going to be some of the more
-    // dynamic thigns that I do... Hopefully I can make custom cards for 
-    // them
-    async setUserStep(stepContext) {
-        this.newGameCommand = stepContext.context.activity.text;
+    async pickGameStep(stepContext) {
+
+        switch(await stepContext.context.activity.text) {
+            case "Launch Zork 1":
+                this.title = await "zork1";
+                break;
+            case "Launch Zork 2":
+                this.title = await "zork2";
+                break;
+            case "Launch Zork 3":
+                this.title = await "zork3";
+                break;
+            case "Launch The Hitchhiker\'s Guide to the Galaxy":
+                this.title = await "hike";
+                break;
+            case "Launch Spellbreaker":
+                this.title = await "spellbreak";
+                break;
+            case "Launch Wishbringer":
+                this.title = await "wishbring";
+                break;
+            default:
+                this.title = await "zork1";
+                break;
+        }
+        if (this.userEmail != null) {
+            stepContext.next(stepContext)
+        }
+
         if (stepContext.message && stepContext.message.entities){
             var userInfo = stepContext.message.entities.find((e) => {
                 return e.type === 'UserInfo';
             });
+
             if (userInfo) {
                 var email = userInfo.UserEmail;
 
                 if(email && email !== ''){
-                    let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/user?email=' + email)
-                        .then(function(response){
+                    let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + email)
+                        .then(response => {
                             console.log(response.data);
                             console.log(response.status);
                             return response.data;
                         });
 
                     //set all user info from the return... 
-                    this.userEmail      = newUserResponse.userEmail;
-                    this.newUser        = newUserResponse.newUser;
-                    this.lastSaveFile   = newUserResponse.lastSaveFile;
-                    this.hike           = newUserResponse.hike;
-                    this.spell          = newUserResponse.spell;
-                    this.wish           = newUserResponse.wish;
-                    this.zork1          = newUserResponse.zork1;
-                    this.zork2          = newUserResponse.zork2;
-                    this.zork3          = newUserResponse.zork3;
+                    this.userEmail      = await newUserResponse.userEmail;
+                    this.newUser        = await newUserResponse.newUser;
+                    this.lastSaveFile   = await newUserResponse.lastSaveFile;
+                    this.hike           = await newUserResponse.hike;
+                    this.spell          = await newUserResponse.spell;
+                    this.wish           = await newUserResponse.wish;
+                    this.zork1          = await newUserResponse.zork1;
+                    this.zork2          = await newUserResponse.zork2;
+                    this.zork3          = await newUserResponse.zork3;
 
                     // say hello to the new person.
-                    stepContext.replaceDialog(PICK_GAME_DIALOG, stepContext);
+                    stepContext.next(stepContext);
                 }
             }
+        } else {
+            return await stepContext.prompt(TEXT_PROMPT, { prompt: "It appears that the bot can't find an email to auto-gen you an account... please enter an email, account name, or some other identifier, and I\'ll use it to store your saves in a consistent location" });
         }
-        //if we somehow don't exit, pull email here
-        return await stepContext.prompt(TEXT_PROMPT, { prompt: "It appears that the bot can't find an email to auto-gen you an account... please enter an email or other identifier, and I\'ll use it to store your saves" });
     }
 
-    async getEmailSetp(stepContext) {
-            
-        let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com:443/user?email=' + stepContext.context.activity.text)
-            .then(function(response){
+    // setting users and picking games are going to be some of the more
+    // dynamic thigns that I do... Hopefully I can make custom cards for 
+    // them
+    async initUserStep(stepContext) {
+        // some other step
+
+        let newUserResponse = await axios.get('http://zorkhub.eastus.cloudapp.azure.com/user?email=' + stepContext.context.activity.text)
+            .then(response => {
                 console.log(response.data);
                 console.log(response.status);
                 return response.data;
@@ -145,61 +152,33 @@ class MainDialog extends ComponentDialog {
 
         //Once you've gotten email, 
         //set all user info from the return... 
-        this.userEmail      = newUserResponse.userEmail;
-        this.lastSaveFile   = newUserResponse.lastSaveFile;
-        this.hike           = newUserResponse.hike;
-        this.spell          = newUserResponse.spell;
-        this.wish           = newUserResponse.wish;
-        this.zork1          = newUserResponse.zork1;
-        this.zork2          = newUserResponse.zork2;
-        this.zork3          = newUserResponse.zork3;
+        this.userEmail      = await newUserResponse.userEmail;
+        this.lastSaveFile   = await newUserResponse.lastSaveFile;
+        this.hike           = await newUserResponse.hike;
+        this.spell          = await newUserResponse.spell;
+        this.wish           = await newUserResponse.wish;
+        this.zork1          = await newUserResponse.zork1;
+        this.zork2          = await newUserResponse.zork2;
+        this.zork3          = await newUserResponse.zork3;
 
-        // say hello to the new person.  
-        stepContext.replaceDialog(PICK_GAME_DIALOG, stepContext);
-    }
-
-    async pickGameStep(stepContext) {
-
-        switch(this.newGameCommand) {
-            case "~Launch Zork 1":
-                this.title = "zork1";
-                break;
-            case "~Launch Zork 2":
-                this.title = "zork2";
-                break;
-            case "~Launch Zork 3":
-                this.title = "zork3";
-                break;
-            case "~Launch The Hitchhiker\'s Guide to the Galaxy":
-                this.title = "hike";
-                break;
-            case "~Launch Spellbreaker":
-                this.title = "spellbreak";
-                break;
-            case "~Launch Wishbringer":
-                this.title = "wishbring";
-                break;
-            default:
-                this.title = "zork1";
-                break;
-        }
-
-        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com:443/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
-            .then(function(response){
-                console.log(response.data); // ex.: { user: 'Your User'}
-                console.log(response.status); // ex.: 200
-                return response.data;
-            });
-
-
+        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
+        .then(response => {
+            console.log(response.data); // ex.: { user: 'Your User'}
+            console.log(response.status); // ex.: 200
+            return response.data;
+        });
+        
+        // by here, a user and game should be initted
         await stepContext.context.sendActivity( startResponse.titleinfo );
         await stepContext.context.sendActivity( startResponse.firstLine );
 
-        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);    
+        await stepContext.context.sendActivity( "Now it's in your hands. ");
+
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
-    async promptUserStep(stepContext) {
-        return await stepContext.prompt(TEXT_PROMPT, { prompt: this.lastLine });
+    async firstStepWrapperStep(stepContext) {
+        return await stepContext.prompt(TEXT_PROMPT, { prompt: this.prompt });
     }
 
     async processCommandStep(stepContext) {
@@ -212,18 +191,14 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
-        if (command.text.match(this.newGameRegex)) {
-            return await stepContext.replaceDialog(INIT_GAME_DIALOG, stepContext);
-        }
-
-        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com:443/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
-            .then(function(response){
+        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
+            .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
                 return response.data;
             });
 
-        this.lastLine = response;
+        this.prompt = await response.cmdOutput;
         
         if (command.text == "exit program") {
             return await stepContext.endDialog(stepContext);
