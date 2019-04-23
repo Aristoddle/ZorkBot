@@ -8,9 +8,8 @@ const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt,
 const { LuisHelper } = require('./luisHelper');
 const { CardFactory } = require('botbuilder-core');
 
-const PROCESS_SAVE_DIALOG = "saveDialog"
+const SAVE_GAME_DIALOG = "saveDialog"
 const GET_INFO_DIALOG = 'getInfoDialog';
-const CHOOSE_GAME_LOOP = 'chooseGameLoop';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
@@ -47,11 +46,8 @@ class MainDialog extends ComponentDialog {
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
         .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
-        .addDialog(new WaterfallDialog(CHOOSE_GAME_LOOP, [
-            this.checkIfGoodInputStep.bind(this),
-            this.loopIfBadStep.bind(this)
-        ]))
         .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
+            this.selectGameStep.bind(this),
             this.checkUserEmail.bind(this),
             this.confirmEmailStep.bind(this),
             this.loopEmailConfirmStep.bind(this),
@@ -62,11 +58,12 @@ class MainDialog extends ComponentDialog {
             this.firstStepWrapperStep.bind(this),
             this.processCommandStep.bind(this)
         ]))
-        .addDialog(new WaterfallDialog(PROCESS_SAVE_DIALOG, [
-            this.saveDialogue.bind(this),
+        .addDialog(new WaterfallDialog(SAVE_GAME_DIALOG, [
+            this.confirmSaveStep.bind(this),
+            this.promptSaveNameStep.bind(this),
+            this.sendSaveStep.bind(this)
         ]))
-
-        this.initialDialogId = CHOOSE_GAME_LOOP;
+        this.initialDialogId = GET_INFO_DIALOG;
     }
 
 
@@ -86,7 +83,7 @@ class MainDialog extends ComponentDialog {
         }
     }
 
-    async checkIfGoodInputStep(stepContext) {
+    async selectGameStep(stepContext) {
         
         switch(await stepContext.context.activity.text) {
             case "Launch Zork 1":
@@ -108,14 +105,11 @@ class MainDialog extends ComponentDialog {
                 this.title = await "wishbring";
                 break;
             default:
-                return await stepContext.prompt(TEXT_PROMPT, { prompt: "That game wasn't recognized.  Please select a game from the provided list." });
+                return await stepContext.replaceDialog(GET_INFO_DIALOG,
+                    await stepContext.prompt(TEXT_PROMPT, { prompt: "That game wasn't recognized.  Please select a game from the provided list." }));
                 break;
         }
-        return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
-    }
-
-    async loopIfBadStep(stepContext) { 
-        return await stepContext.replaceDialog(CHOOSE_GAME_LOOP, []);
+        return await stepContext.next([]);
     }
 
 
@@ -220,17 +214,18 @@ class MainDialog extends ComponentDialog {
                 this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.wish);
                 break;
             default:
-                this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork1);
-                break;
+                return await stepContext.replaceDialog(GET_INFO_DIALOG, 
+                    await stepContext.prompt(TEXT_PROMPT, { prompt: "Something appears to have gone wrong and I\'ve lost track of which game you wanted to play.  Could you please re-state your intended game?"}));
         }
-        const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard);
-        await stepContext.context.sendActivity({ attachments: [pickSaveCard] });
-        return await stepContext.next([]);
+        const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard)
+        return await stepContext.prompt(TEXT_PROMPT, { 
+            prompt:  await stepContext.context.sendActivity({ 
+                attachments: [pickSaveCard] })});
     }
 
     async startGameStep(stepContext){
         // TODO: add capability to delete the Autosave -->New Game
-        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}`)
+        let startResponse = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/start?title=${this.title}&email=${this.userEmail}`)
         .then(response => {
             console.log(response.data); // ex.: { user: 'Your User'}
             console.log(response.status); // ex.: 200
@@ -258,7 +253,7 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
-        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}&save=${this.lastSaveFile == null ? "AutoSave" : this.lastSaveFile}&action=${command.text}`)
+        let response = await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/action?title=${this.title}&email=${this.userEmail}}&action=${command.text}`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
@@ -268,21 +263,41 @@ class MainDialog extends ComponentDialog {
         this.gameplayPrompt = await response.cmdOutput;
         if (command.text == "exit program") {
             return await stepContext.endDialog(stepContext);
+            //TODO: pull save intent from LUIS
+        } else if ((command.text == "save game") || (command.text == "save")) {
+            return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
         } else {
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
     }
 
-    async saveDialogue(stepContext) {
+    async confirmSaveStep(stepContext) {
         const saveCheckCard = CardFactory.adaptiveCard(this.adaptiveCard);
-        await stepContext.context.sendActivity({ attachments: [saveCheckCard] });
+        return await stepContext.prompt(TEXT_PROMPT, { 
+            prompt: await stepContext.context.sendActivity( { 
+                attachments: [saveCheckCard] })}); 
+    }
 
+    async promptSaveNameStep(stepContext) {
         // TODO: Set this as a unique call to save manually
         if (stepContext.context.activity.text == "yes") {
-            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
+            return await stepContext.prompt(TEXT_PROMPT, {
+                prompt: "Okay.  What would you like to name your save file?"
+            })
         }
+        await stepContext.context.sendActivity("New Save creation cancellled.  Continuing game. ")
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
-        //do a save --> make it a special call that I just intercept.  
+        //do a save --> make it a special call that I just intercept. 
+    }
+
+    async sendSaveStep(stepContext) {
+        await axios.get(`http://zorkhub.eastus.cloudapp.azure.com/save?title=${this.title}&email=${this.userEmail}&save=${stepContext.context.action.text}`)
+            .then(response => {
+                console.log(response.data); // ex.: { user: 'Your User'}
+                console.log(response.status); // ex.: 200
+                return response.data;
+            });
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
     async buildSaveFilesCard(gameTitle, saveList) {
@@ -310,7 +325,7 @@ class MainDialog extends ComponentDialog {
                 "type": "TextBlock",
                 "size": "default",
                 "isSubtle": "yes",
-                "text": `${saveList.length == 0? "It looks like this is the first time that you've played this game.  I'm going to set up a profile for you under \"AutoSave\".  If you want to create another save file, just issue a command to do so in-game!" : "You appear to have at least one save file set up for this account.  Please select the save file that you would like to continue playing on"}`,
+                "text": `${saveList.length == 0? "It looks like this is the first time that you've played this game.  I'm going to set up a profile for you under \"AutoSave\".  If you want to create another save file, just issue a command to do so in-game!  Please select New Game to continue" : "You appear to have at least one save file set up for this account.  Please select the save file that you would like to continue playing.  Be aware that loading anything other than your current AUtoSave will replace that AutoSave with your current state."}`,
                 "wrap": true,
                 "maxLines": 0
               }
@@ -354,7 +369,7 @@ class MainDialog extends ComponentDialog {
                 "type": "TextBlock",
                 "size": "default",
                 "isSubtle": "yes",
-                "text": `Are you trying to save the game?`,
+                "text": "Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.",
                 "wrap": true,
                 "maxLines": 0
               }
