@@ -23,14 +23,25 @@
       "text": "From here, select a game you would like to play, and we can get started",
       "wrap": true,
       "maxLines": 0
+    },
+    {
+      "type": "Container",
+      "selectAction": {
+        "Type": "Action.Submit",
+        "title": "Play Zork 1",
+        "data": "Launch Zork 1"
+      }
+    }
+    {
+      "type": "Container",
+      "selectAction": {
+        "Type": "Action.Submit",
+        "title": "Play Zork 2",
+        "data": "Launch Zork 2"
+      }
     }
   ],
   "actions": [
-    {
-      "type": "Action.Submit",
-      "title": "Play Zork 1",
-      "data": "Launch Zork 1"
-    },
     {
       "type": "Action.Submit",
       "title": "Play Zork 2",

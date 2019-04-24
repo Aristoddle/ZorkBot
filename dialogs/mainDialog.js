@@ -7,12 +7,13 @@
 // import { } from 'botbuilder-ai';
 // import { } from 'dotenv';
 
-const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
+const { ComponentDialog, DialogSet, DialogTurnStatus, ChoicePrompt, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
 const { LuisHelper } = require('./luisHelper');
 const { CardFactory } = require('botbuilder-core');
 
-const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
+// const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
+const CHOICE_PROMPT = 'choicePrompt';
 const SAVE_GAME_DIALOG = 'saveDialog';
 const GET_INFO_DIALOG = 'getInfoDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
@@ -56,13 +57,9 @@ class MainDialog extends ComponentDialog {
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
             .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
-            .addDialog(new WaterfallDialog(SELECT_GAME_DIALOG, [
-                // this.recieveInitialStatementStep.bind(this),
-                this.selectGameStep.bind(this),
-                this.loopBadGameStep.bind(this)
-            ]))
+            .addDialog(new ChoicePrompt(CHOICE_PROMPT))
             .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
-
+                this.selectGameStep.bind(this),
                 this.checkUserEmail.bind(this),
                 this.confirmEmailStep.bind(this),
                 this.loopEmailConfirmStep.bind(this),
@@ -78,7 +75,7 @@ class MainDialog extends ComponentDialog {
                 this.promptSaveNameStep.bind(this),
                 this.sendSaveStep.bind(this)
             ]));
-        this.initialDialogId = SELECT_GAME_DIALOG;
+        this.initialDialogId = GET_INFO_DIALOG;
     }
 
     /**
@@ -93,45 +90,22 @@ class MainDialog extends ComponentDialog {
         const dialogContext = await dialogSet.createContext(context);
         const results = await dialogContext.continueDialog();
         if (results.status === DialogTurnStatus.empty) {
-            const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
-            await context.sendActivity({ attachments: [welcomeCard] });
             await dialogContext.beginDialog(this.id);
         }
     }
 
     async selectGameStep(stepContext) {
-        switch (await stepContext.context.activity.text) {
-        case 'Launch Zork 1':
-            this.title = await 'zork1';
-            break;
-        case 'Launch Zork 2':
-            this.title = await 'zork2';
-            break;
-        case 'Launch Zork 3':
-            this.title = await 'zork3';
-            break;
-        case "Launch The Hitchhiker's Guide to the Galaxy":
-            this.title = await 'hike';
-            break;
-        case 'Launch Spellbreaker':
-            this.title = await 'spell';
-            break;
-        case 'Launch Wishbringer':
-            this.title = await 'wishbring';
-            break;
-        default:
-            // can you clear stepContext like this?
-            return await stepContext.prompt(TEXT_PROMPT, {
-                prompt: 'Please select a game from the provided list.' });
-        }
-        return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
-    }
-
-    async loopBadGameStep(stepContext) {
-        return await stepContext.replaceDialog(SELECT_GAME_DIALOG, []);
+        return await stepContext.prompt(CHOICE_PROMPT, {
+            // style: 'heroCard',
+            style: 'suggestedAction',
+            prompt: 'Hi!  Thanks so much for demoing my Senior Project.  Choose a game from the list below and we can begin',
+            retryPrompt: 'You need to choose one of the listed games to play.',
+            choices: ['Zork One', 'Zork Two', 'Zork Three','The Hitchhiker\'s Guide to the Galaxy', 'Spellbreaker', 'Wishbringer']
+        });
     }
 
     async checkUserEmail(stepContext) {
+        this.title = stepContext.result.value;
         // email was set earlier in the loop
         if (this.userEmail != null) {
             return await stepContext.next(stepContext);
@@ -214,33 +188,37 @@ class MainDialog extends ComponentDialog {
         this.zork2 = await newUserResponse.zork2;
         this.zork3 = await newUserResponse.zork3;
 
-        switch (this.title) {
-        case 'zork1':
-            this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork1);
-            break;
-        case 'zork2':
-            this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork2);
-            break;
-        case 'zork3':
-            this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.zork3);
-            break;
-        case 'hike':
-            this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.hike);
-            break;
-        case 'spell':
-            this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.spell);
-            break;
-        case 'wishbring':
-            this.adaptiveCard = await this.buildSaveFilesCard(this.title, this.wish);
-            break;
-        default:
-            return await stepContext.replaceDialog(GET_INFO_DIALOG,
-                await stepContext.prompt(TEXT_PROMPT, { prompt: "Something appears to have gone wrong and I\'ve lost track of which game you wanted to play.  Could you please re-state your intended game?" }));
+        let promptObj = {
+            // style: 'heroCard',
+            style: 'suggestedAction',
+            prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
+            retryPrompt: 'You need to select one of the listed games to play.',
+            choices: ['New Game',]
+        };
+        let saves = this.getSavesForAccount(this.title);
+        
+        if (Array.isArray(saves) && saves.length) {
+            promptObj.choices = promptObj.choices.concat(saves);
         }
-        const pickSaveCard = CardFactory.adaptiveCard(this.adaptiveCard);
-        return await stepContext.prompt(TEXT_PROMPT, {
-            prompt: await stepContext.context.sendActivity({
-                attachments: [pickSaveCard] }) });
+
+        return await stepContext.prompt(CHOICE_PROMPT, promptObj);
+    }
+
+    async getSavesForAccount(title) {
+        switch (title) {
+        case 'Zork One':
+            return this.zork1;
+        case 'Zork Two':
+            return this.zork2;
+        case 'Zork Three':
+            return this.zork3;
+        case 'The Hitchhiker\'s Guide to the Galaxy':
+            return this.hike;
+        case 'Spellbreaker':
+            return this.spell;
+        case 'Wishbringer':
+            return this.wish;
+        }
     }
 
     async startGameStep(stepContext) {
@@ -335,6 +313,8 @@ class MainDialog extends ComponentDialog {
         this.gameplayPrompt = `New Save created at ${ stepContext.context.activity.text }`;
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
+
+
 
     async buildSaveFilesCard(gameTitle, saveList) {
         let newAdaptiveCard =
