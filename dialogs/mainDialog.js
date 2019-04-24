@@ -93,8 +93,6 @@ class MainDialog extends ComponentDialog {
         const dialogContext = await dialogSet.createContext(context);
         const results = await dialogContext.continueDialog();
         if (results.status === DialogTurnStatus.empty) {
-            const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
-            await context.sendActivity({ attachments: [welcomeCard] });
             await dialogContext.beginDialog(this.id);
         }
     }
