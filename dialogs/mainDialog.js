@@ -96,8 +96,8 @@ class MainDialog extends ComponentDialog {
 
     async selectGameStep(stepContext) {
         return await stepContext.prompt(CHOICE_PROMPT, {
-            // style: 'heroCard',
-            style: 'suggestedAction',
+            style: 'heroCard',
+            // style: 'suggestedAction',
             prompt: 'Hi!  Thanks so much for demoing my Senior Project.  Choose a game from the list below and we can begin',
             retryPrompt: 'You need to choose one of the listed games to play.',
             choices: ['Zork One', 'Zork Two', 'Zork Three','The Hitchhiker\'s Guide to the Galaxy', 'Spellbreaker', 'Wishbringer']
@@ -189,8 +189,8 @@ class MainDialog extends ComponentDialog {
         this.zork3 = await newUserResponse.zork3;
 
         let promptObj = {
-            // style: 'heroCard',
-            style: 'suggestedAction',
+            style: 'heroCard',
+            // style: 'suggestedAction',
             prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
             retryPrompt: 'You need to select one of the listed games to play.',
             choices: ['New Game',]
