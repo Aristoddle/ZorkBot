@@ -20,7 +20,7 @@ const SELECT_GAME_DIALOG = 'selectGameDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
 
-const DEBUG = true;
+const DEBUG = false;
 const APIROOT = DEBUG ? 'http://zorkhub.eastus.cloudapp.azure.com:443' : 'http://zorkhub.eastus.cloudapp.azure.com';
 
 var axios = require('axios');
