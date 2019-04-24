@@ -59,6 +59,7 @@ class MainDialog extends ComponentDialog {
             .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
             .addDialog(new ChoicePrompt(CHOICE_PROMPT))
             .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
+                this.zorkOrNoStep.bind(this),
                 this.selectGameStep.bind(this),
                 this.checkUserEmail.bind(this),
                 this.confirmEmailStep.bind(this),
@@ -93,15 +94,31 @@ class MainDialog extends ComponentDialog {
             await dialogContext.beginDialog(this.id);
         }
     }
+    async zorkOrNoStep(stepContext) {
+        return await stepContext.prompt(CHOICE_PROMPT, {
+            style: 'suggestedAction',
+            prompt: 'Hi!  Thanks so much for demoing my Senior Project.  We have a good number of games, so we\'re going to have to to a bit of tree traversal.  Would you like to play a Zork title, or another piece of Interactive Fiction?',
+            retryPrompt: 'Please say Zork, or say Other',
+            choices: ['Zork', 'Other IF']
+        });
+    }
 
     async selectGameStep(stepContext) {
-        return await stepContext.prompt(CHOICE_PROMPT, {
-            style: 'heroCard',
-            // style: 'suggestedAction',
-            prompt: 'Hi!  Thanks so much for demoing my Senior Project.  Choose a game from the list below and we can begin',
-            retryPrompt: 'You need to choose one of the listed games to play.',
-            choices: ['Zork One', 'Zork Two', 'Zork Three','The Hitchhiker\'s Guide to the Galaxy', 'Spellbreaker', 'Wishbringer']
-        });
+        if (stepContext.result.value == "Zork") {
+            return await stepContext.prompt(CHOICE_PROMPT, {
+                style: 'suggestedAction',
+                prompt: 'Alright, so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
+                retryPrompt: 'Please indicate the Zork title you would like to play.',
+                choices: ['Zork One', 'Zork Two', 'Zork Three']
+            });
+        } else {
+            return await stepContext.prompt(CHOICE_PROMPT, {
+                style: 'suggestedAction',
+                prompt: 'Okay.  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
+                retryPrompt: 'You need to choose one of the listed games to play.',
+                choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
+            });
+        }
     }
 
     async checkUserEmail(stepContext) {
@@ -189,13 +206,13 @@ class MainDialog extends ComponentDialog {
         this.zork3 = await newUserResponse.zork3;
 
         let promptObj = {
-            style: 'heroCard',
-            // style: 'suggestedAction',
+            // style: 'heroCard',
+            style: 'suggestedAction',
             prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
             retryPrompt: 'You need to select one of the listed games to play.',
-            choices: ['New Game',]
+            choices: ['New Game']
         };
-        let saves = this.getSavesForAccount(this.title);
+        let saves = await this.getSavesForAccount(this.title);
         
         if (Array.isArray(saves) && saves.length) {
             promptObj.choices = promptObj.choices.concat(saves);
@@ -212,7 +229,7 @@ class MainDialog extends ComponentDialog {
             return this.zork2;
         case 'Zork Three':
             return this.zork3;
-        case 'The Hitchhiker\'s Guide to the Galaxy':
+        case 'Hitchhiker\'s Guide':
             return this.hike;
         case 'Spellbreaker':
             return this.spell;
