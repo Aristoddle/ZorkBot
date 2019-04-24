@@ -20,7 +20,6 @@
     {
       "type": "TextBlock",
       "size": "default",
-      "isSubtle": "yes",
       "text": "From here, select a game you would like to play, and we can get started",
       "wrap": true,
       "maxLines": 0
