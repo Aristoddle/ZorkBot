@@ -11,7 +11,7 @@ const { ComponentDialog, DialogSet, DialogTurnStatus, TextPrompt, ConfirmPrompt,
 const { LuisHelper } = require('./luisHelper');
 const { CardFactory } = require('botbuilder-core');
 
-// const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
+const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
 const SAVE_GAME_DIALOG = 'saveDialog';
 const GET_INFO_DIALOG = 'getInfoDialog';
@@ -57,6 +57,7 @@ class MainDialog extends ComponentDialog {
         this.addDialog(new TextPrompt(TEXT_PROMPT))
             .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
             .addDialog(new WaterfallDialog(SELECT_GAME_DIALOG, [
+                // this.recieveInitialStatementStep.bind(this),
                 this.selectGameStep.bind(this),
                 this.loopBadGameStep.bind(this)
             ]))
@@ -92,6 +93,8 @@ class MainDialog extends ComponentDialog {
         const dialogContext = await dialogSet.createContext(context);
         const results = await dialogContext.continueDialog();
         if (results.status === DialogTurnStatus.empty) {
+            const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
+            await context.sendActivity({ attachments: [welcomeCard] });
             await dialogContext.beginDialog(this.id);
         }
     }
@@ -119,7 +122,7 @@ class MainDialog extends ComponentDialog {
         default:
             // can you clear stepContext like this?
             return await stepContext.prompt(TEXT_PROMPT, {
-                prompt: "That game wasn't recognized.  Please select a game from the provided list." });
+                prompt: 'Please select a game from the provided list.' });
         }
         return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
     }
