@@ -360,7 +360,6 @@ class MainDialog extends ComponentDialog {
                 {
                     'type': 'TextBlock',
                     'size': 'default',
-                    'isSubtle': 'yes',
                     'text': `${ saveList.length == 0 ? "It looks like this is the first time that you've played this game.  I'm going to set up a profile for you under \"AutoSave\".  If you want to create another save file, just issue a command to do so in-game!  Please select New Game to continue" : 'You appear to have at least one save file set up for this account.  Please select the save file that you would like to continue playing.  Be aware that loading anything other than your current AUtoSave will replace that AutoSave with your current state.' }`,
                     'wrap': true,
                     'maxLines': 0
@@ -404,7 +403,6 @@ class MainDialog extends ComponentDialog {
                 {
                     'type': 'TextBlock',
                     'size': 'default',
-                    'isSubtle': 'yes',
                     'text': 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.',
                     'wrap': true,
                     'maxLines': 0
@@ -441,7 +439,6 @@ class MainDialog extends ComponentDialog {
                 {
                     'type': 'TextBlock',
                     'size': 'default',
-                    'isSubtle': 'yes',
                     'text': `I'm going to set up an account for you at ${ username }.  Is that Okay?`,
                     'wrap': true,
                     'maxLines': 0
