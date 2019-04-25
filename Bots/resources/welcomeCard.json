@@ -30,7 +30,7 @@
     {
       "type": "TextBlock",
       "size": "default",
-      "text": "Thanks for using the Zorkbot. \nI built this application to create a modern interface to classic Interactive Fiction games like Zork, Wishbringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files and select the game that you would like to play.  Then, we'll be good to go! \nAlso, when you decide stop playing say 'Stop ZorkBot', and I will end the session. You can also say 'ZorkBot Repeat' to have the ZorkBot re-read the game output to you.",
+      "text": "Thanks for using the Zorkbot. \nI built this application to create a modern interface to classic Interactive Fiction games like Zork, Wishbringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files and select the game that you would like to play. \nAlso, when you decide to stop playing say 'Stop ZorkBot', and I will end the session. You can also say 'ZorkBot Repeat' to have the ZorkBot re-read the game output to you.",
       "wrap": true,
       "maxLines": 0
     }

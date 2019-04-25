@@ -146,7 +146,7 @@ class MainDialog extends ComponentDialog {
                     inputHint: 'ignoringInput'
                 });
                 return await stepContext.prompt(TEXT_PROMPT, {
-                    prompt: 'Please state an identifier:' });
+                    prompt: 'this.enterEmailPrompt' });
             }
         } else {
             await stepContext.context.sendActivity({
@@ -155,7 +155,7 @@ class MainDialog extends ComponentDialog {
                 inputHint: 'ignoringInput'
             });
             return await stepContext.prompt(TEXT_PROMPT, {
-                prompt: 'Please state an identifier:' });
+                prompt: 'enterEmailPrompt' });
         }
     }
 
@@ -188,7 +188,7 @@ class MainDialog extends ComponentDialog {
                 inputHint: 'ignoringInput'
             });
             return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: `Please answer Yes/No`
+                prompt: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`,
             });
         } else {
             await stepContext.context.sendActivity({
@@ -197,7 +197,7 @@ class MainDialog extends ComponentDialog {
                 inputHint: 'ignoringInput'
             });
             return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: `Please answer Yes/No`
+                prompt: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`
 
             });
         }
@@ -250,7 +250,7 @@ class MainDialog extends ComponentDialog {
             });
 
             return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: 'Please answer Yes/No.'
+                prompt: `Your last saved game was for the game ${ lastGame }.  Would you like to continue playing ${ lastGame }?`
             });
         } else {
             return await stepContext.next(stepContext);
@@ -424,7 +424,7 @@ class MainDialog extends ComponentDialog {
             inputHint: 'expectingInput'
         });
         return await stepContext.prompt(TEXT_PROMPT, {
-            prompt: 'What should we do?' });
+            prompt: this.gameplayPrompt + 'What should we do?' });
     }
 
     async processCommandStep(stepContext) {
@@ -472,10 +472,10 @@ class MainDialog extends ComponentDialog {
         await stepContext.context.sendActivity({
             text: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.',
             speak: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.',
-            inputHint: 'ig'
+            inputHint: 'ignoringInput'
         });
         return await stepContext.prompt(CONFIRM_PROMPT, {
-            prompt: 'Please indicate your intention.'
+            prompt: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.',
         });
     }
 
@@ -488,7 +488,7 @@ class MainDialog extends ComponentDialog {
                 inputHint: 'expectingInput'
             });
             return await stepContext.prompt(TEXT_PROMPT, {
-                prompt: 'Filename: '
+                prompt: 'What would you like to name your save file?'
             });
         } else {
             this.gameplayPrompt = 'New Save Creation Cancelled.  Continuing game.   What would you like to do?';
