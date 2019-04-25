@@ -107,6 +107,7 @@ class MainDialog extends ComponentDialog {
         } else {
             return await stepContext.prompt(TEXT_PROMPT, {
                 prompt: this.enterEmailPrompt });
+        }
 
         if (stepContext.message && stepContext.message.entities) {
             var userInfo = stepContext.message.entities.find((e) => {
