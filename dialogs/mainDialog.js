@@ -100,27 +100,31 @@ class MainDialog extends ComponentDialog {
 
     async checkUserEmail(stepContext) {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
-        stepContext.context.sendActivity({ attachments: [welcomeCard] });
+        await stepContext.context.sendActivity({ attachments: [welcomeCard] });
         // email was set earlier in the loop
         if (this.email != null) {
             return await stepContext.next(stepContext);
         }
 
-        var userInfo = stepContext.message.entities.find((e) => {
-            return e.type === 'UserInfo';
-        });
+        if (stepContext.message && stepContext.message.entities) {
+            var userInfo = stepContext.message.entities.find((e) => {
+                return e.type === 'UserInfo';
+            });
+            
+            if (userInfo) {
+                await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`);
+                var foundEmail = userInfo.email;
+                if (foundEmail && foundEmail !== '') {
+                    await stepContext.context.sendActivity(`Email found: ${ foundEmail }`);
 
-        if (userInfo) {
-            await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`);
-            var foundEmail = userInfo.email;
-            if (foundEmail && foundEmail !== '') {
-                await stepContext.context.sendActivity(`Email found: ${ foundEmail }`);
-
-                this.email = foundEmail;
-                return await stepContext.next(stepContext);
+                    this.email = foundEmail;
+                    return await stepContext.next(stepContext);
+                }
+            } else {
+                return await stepContext.prompt(TEXT_PROMPT, {
+                    prompt: this.enterEmailPrompt });
             }
-        }
-        else {
+        } else {
             return await stepContext.prompt(TEXT_PROMPT, {
                 prompt: this.enterEmailPrompt });
         }
