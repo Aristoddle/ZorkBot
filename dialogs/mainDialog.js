@@ -106,22 +106,21 @@ class MainDialog extends ComponentDialog {
             return await stepContext.next(stepContext);
         }
 
-        if (stepContext.message && stepContext.message.entities) {
-            var userInfo = stepContext.message.entities.find((e) => {
-                return e.type === 'UserInfo';
-            });
+        var userInfo = stepContext.message.entities.find((e) => {
+            return e.type === 'UserInfo';
+        });
 
-            if (userInfo) {
-                await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`);
-                var foundEmail = userInfo.email;
-                if (foundEmail && foundEmail !== '') {
-                    await stepContext.context.sendActivity(`Email found: ${ foundEmail }`);
+        if (userInfo) {
+            await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`);
+            var foundEmail = userInfo.email;
+            if (foundEmail && foundEmail !== '') {
+                await stepContext.context.sendActivity(`Email found: ${ foundEmail }`);
 
-                    this.email = foundEmail;
-                    return await stepContext.next(stepContext);
-                }
+                this.email = foundEmail;
+                return await stepContext.next(stepContext);
             }
-        } else {
+        }
+        else {
             return await stepContext.prompt(TEXT_PROMPT, {
                 prompt: this.enterEmailPrompt });
         }
