@@ -102,7 +102,7 @@ class MainDialog extends ComponentDialog {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
         await stepContext.context.sendActivity({
             attachments: [welcomeCard],
-            speak: "Thanks for playing the Zorkbot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would decide stop playing, say 'Stop ZorkBot', and I will end the session.",
+            speak: "Thanks for using ZorkBot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would decide stop playing, say 'Stop ZorkBot', and I will end the session.  One the game has begun, you can say ZorkBot Repeat to have the ZorkBot re-read the line to you.",
             inputHint: 'ignoringInput'
         });
 
@@ -186,6 +186,7 @@ class MainDialog extends ComponentDialog {
             });
         } else {
             await stepContext.context.sendActivity({
+                text: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`,
                 speak: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`,
                 inputHint: 'ignoringInput'
             });
@@ -272,9 +273,9 @@ class MainDialog extends ComponentDialog {
             style: 'auto',
             prompt: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
             speak: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
-            retryPrompt: 'Please say Zork, or Other I.F.',
-            retrySpeak: 'Please say Zork, or Other I.F.',
-            choices: ['Zork', 'Other I.F.']
+            retryPrompt: 'Please say Zork, or Another Work.',
+            retrySpeak: 'Please say Zork, or Another Work.',
+            choices: ['Zork', 'Another Work.']
         });
     }
 
@@ -429,6 +430,15 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
+        if (((/zorkbot repeat/i).test(command.text)) || ((/save/i).test(command.text))) {
+            await stepContext.context.sendActivity({
+                text: this.gameplayPrompt,
+                speak: this.gameplayPrompt + 'What should we do?',
+                inputHint: 'expectingInput'
+            });
+            return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
+        }
+
         let response = await axios.get(`${ APIROOT }/action?title=${ this.title }&email=${ this.email }&action=${ command.text }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
@@ -437,7 +447,7 @@ class MainDialog extends ComponentDialog {
             });
 
         this.gameplayPrompt = await response.cmdOutput;
-        if ((/stop zorkbot/i).test(command.text)) {
+        if ((/stop ZorkBot/i).test(command.text)) {
             await stepContext.context.sendActivity({
                 text: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave.`,
                 speak: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave.`,
