@@ -311,7 +311,7 @@ class MainDialog extends ComponentDialog {
                 speak: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 retryPrompt: 'You need to choose one of the listed games to play.',
                 retrySpeak: 'Please Say, Hitchhiker\'s Guide, Spellbreaker, or Wishbringer',
-                choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer', 'Zork One', 'Zork Two', 'Zork Three']
+                choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
             });
         }
     }
