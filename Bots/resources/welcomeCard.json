@@ -44,7 +44,7 @@
     {
       "type": "TextBlock",
       "size": "default",
-      "text": "Also, when you decide to stop playing say 'Stop ZorkBot', and I will end the session. You can also say 'ZorkBot Repeat' to have the ZorkBot re-read the game output to you.",
+      "text": "When you decide to stop playing say 'Stop ZorkBot', and I will end the session. You can also say 'ZorkBot Repeat' to have the ZorkBot re-read the game output to you.",
       "wrap": true,
       "maxLines": 0
     } 
