@@ -123,19 +123,8 @@ class MainDialog extends ComponentDialog {
             });
 
             if (userInfo) {
-                await stepContext.context.sendActivity({
-                    text: `UserInfo Found: ${ userInfo }`,
-                    speak: `UserInfo Found: ${ userInfo }`,
-                    inputHint: 'expectingInput'
-                });
                 var foundEmail = await userInfo.email;
                 if (foundEmail && foundEmail !== '') {
-                    await stepContext.context.sendActivity({
-                        text: `Email found: ${ foundEmail }`,
-                        speak: `Email found: ${ foundEmail }`,
-                        inputHint: 'expectingInput'
-                    });
-
                     this.email = await foundEmail;
                     return await stepContext.next(stepContext);
                 }
