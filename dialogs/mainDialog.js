@@ -39,7 +39,7 @@ class MainDialog extends ComponentDialog {
 
         this.logger = logger;
         this.gameplayPrompt = 'What should we do\?';
-        this.enterEmailPrompt = "Before we get started, It appears that the bot wasn't able to extract your email address from the current context. Please supply a unique identifier that ZorkBot can use to manage your saves and gameplay history.";
+        this.enterEmailPrompt = "It appears that the bot wasn't able to extract your email address from the current context. Please supply a unique identifier that ZorkBot can use to manage your saves and gameplay history.";
 
         this.email = null;
         this.userExists = false;
@@ -102,7 +102,7 @@ class MainDialog extends ComponentDialog {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
         await stepContext.context.sendActivity({
             attachments: [welcomeCard],
-            speak: "Thanks for playing the Zorkbot.  I built this application to create a modern interface to classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would ever like to stop playing, say 'Stop ZorkBot', and I will end the session.",
+            speak: "Thanks for playing the Zorkbot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would decide stop playing, say 'Stop ZorkBot', and I will end the session.",
             inputHint: 'ignoringInput'
         });
 
@@ -263,6 +263,11 @@ class MainDialog extends ComponentDialog {
     }
 
     async zorkOrNoStep(stepContext) {
+        await stepContext.context.sendActivity({
+            text: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
+            speak: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
+            inputHint: 'ignoringInput'
+        });
         return await stepContext.prompt(CHOICE_PROMPT, {
             style: 'auto',
             prompt: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
@@ -275,18 +280,28 @@ class MainDialog extends ComponentDialog {
 
     async selectGameStep(stepContext) {
         if (stepContext.result.value == 'Zork') {
+            await stepContext.context.sendActivity({
+                text: 'Alright! Among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
+                speak: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
+                inputHint: 'ignoringInput'
+            });
             return await stepContext.prompt(CHOICE_PROMPT, {
                 style: 'auto',
-                prompt: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
+                prompt: 'Alright! Among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
                 speak: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
                 retryPrompt: 'Please indicate the Zork title you would like to play.',
                 retrySpeak: 'Please say Zork One, Zork Two, or Zork Three',
                 choices: ['Zork One', 'Zork Two', 'Zork Three']
             });
         } else {
+            await stepContext.context.sendActivity({
+                text: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
+                speak: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
+                inputHint: 'ignoringInput'
+            });
             return await stepContext.prompt(CHOICE_PROMPT, {
                 style: 'auto',
-                prompt: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
+                prompt: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 speak: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 retryPrompt: 'You need to choose one of the listed games to play.',
                 retrySpeak: 'Please Say, Hitchhiker\'s Guide, Spellbreaker, or Wishbringer',
@@ -344,6 +359,11 @@ class MainDialog extends ComponentDialog {
 
     async loadSavesStep(stepContext) {
         this.gameSaves.push('New Game');
+        await stepContext.context.sendActivity({
+            text: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
+            speak: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
+            inputHint: 'ignoringInput'
+        });
         let promptObj = {
             // style: 'auto',
             style: 'auto',
