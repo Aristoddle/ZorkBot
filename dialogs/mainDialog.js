@@ -23,9 +23,9 @@ const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
 
 // const DEBUG = false;
-// const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
-const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
-
+const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
+// const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
+ 
 var axios = require('axios');
 
 class MainDialog extends ComponentDialog {
@@ -44,7 +44,6 @@ class MainDialog extends ComponentDialog {
 
         this.email = null;
         this.userExists = false;
-        this.lastSaveFile = 'AutoSave';
         this.title = null;
 
         this.hike = [];
@@ -54,7 +53,10 @@ class MainDialog extends ComponentDialog {
         this.zork2 = [];
         this.zork3 = [];
 
+        this.lastGame = 'AutoSave';
         this.gameSaves = [];
+        this.systemProvidedEmail = false;
+        this.makingNewAccount    = false;
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
             .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
@@ -126,6 +128,7 @@ class MainDialog extends ComponentDialog {
                 var foundEmail = await userInfo.email;
                 if (foundEmail && foundEmail !== '') {
                     this.email = await foundEmail;
+                    this.systemProvidedEmail = true;
                     return await stepContext.next(stepContext);
                 }
             } else {
@@ -147,9 +150,6 @@ class MainDialog extends ComponentDialog {
             prompt: this.enterEmailPrompt });
     }
 
-    // setting users and picking games are going to be some of the more
-    // dynamic thigns that I do... Hopefully I can make custom cards for
-    // them
     async confirmEmailStep(stepContext) {
         if (this.email == null) {
             this.email = await stepContext.result;
@@ -160,7 +160,9 @@ class MainDialog extends ComponentDialog {
                 console.log(response.status);
                 return response.data;
             });
+        
         this.newUser = await newUserResponse.newUser;
+        this.lastGame = await newUserResponse.profile.lastGame;
         this.hike = await newUserResponse.profile.hike;
         this.wish = await newUserResponse.profile.wish;
         this.spell = await newUserResponse.profile.spell;
@@ -178,37 +180,47 @@ class MainDialog extends ComponentDialog {
                 prompt: `There was no Zork Bot account found at ${ this.email }. Should I create one there?`
             });
         } else {
-            await stepContext.context.sendActivity({
-                text: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`,
-                speak: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`,
-                inputHint: 'ignoringInput'
-            });
-            return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`
-
-            });
+            if (this.systemProvidedEmail) {
+                await stepContext.context.sendActivity({
+                    text: `An account has already been created for ${ this.email }.  Logging in...`,
+                    speak: `An account has already been created for ${ this.email }.  Logging in...`,
+                    inputHint: 'ignoringInput'
+                });
+                return await stepContext.next(stepContext);
+            } else {
+                await stepContext.context.sendActivity({
+                    text: `An account was found at ${ this.email }. Is this you?  If not, you should pick a new account name.`,
+                    speak: `An account was found at ${ this.email }. Is this you?  If not, you should pick a new account name.`,
+                    inputHint: 'ignoringInput'
+                });
+                return await stepContext.prompt(CONFIRM_PROMPT, {
+                    prompt: `An account was found at ${ this.email }. Is this you?  If not, you should pick a new account name.`
+                });
+            }
         }
     }
 
     async loopEmailConfirmStep(stepContext) {
         if (stepContext.result) {
-            await stepContext.context.sendActivity({
-                text: `Registered ${ this.email }.`,
-                speak: `Registered ${ this.email }.`,
-                inputHint: 'ignoringInput'
-            });
+            if (this.makingNewAccount) {
+                await stepContext.context.sendActivity({
+                    text: `Registered ${ this.email }.`,
+                    speak: `Registered ${ this.email }.`,
+                    inputHint: 'ignoringInput'
+                });
+            }
             return await stepContext.next(stepContext);
         } else {
             this.email = null;
-            this.enterEmailPrompt = 'Please enter an alternate account name.';
+            this.enterEmailPrompt = 'Okay. Please enter a new account name.';
             return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
         }
     }
 
     async tryLoadLastGameStep(stepContext) {
         let lastGame = null;
-        if (this.lastSaveFile) {
-            switch (this.lastSaveFile) {
+        if (this.lastGame) {
+            switch (this.lastGame) {
             case 'zork1':
                 lastGame = 'Zork One';
                 break;
