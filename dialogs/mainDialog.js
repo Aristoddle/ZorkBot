@@ -104,9 +104,6 @@ class MainDialog extends ComponentDialog {
         // email was set earlier in the loop
         if (this.email != null) {
             return await stepContext.next(stepContext);
-        } else {
-            return await stepContext.prompt(TEXT_PROMPT, {
-                prompt: this.enterEmailPrompt });
         }
 
         if (stepContext.message && stepContext.message.entities) {
@@ -302,7 +299,7 @@ class MainDialog extends ComponentDialog {
         this.gameSaves.push('New Game');
         let promptObj = {
             // style: 'heroCard',
-            style: 'suggestedAction',
+            style: 'heroCard',
             prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
             retryPrompt: 'You need to select one of the listed games to play.',
             choices: this.gameSaves
