@@ -172,7 +172,6 @@ class MainDialog extends ComponentDialog {
                 return response.data;
             });
         this.newUser = await newUserResponse.newUser;
-        this.email = await newUserResponse.profile.userEmail;
         this.hike = await newUserResponse.profile.hike;
         this.wish = await newUserResponse.profile.wish;
         this.spell = await newUserResponse.profile.spell;
