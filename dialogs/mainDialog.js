@@ -392,7 +392,7 @@ class MainDialog extends ComponentDialog {
                 console.log(response.status); // ex.: 200
                 return response.data;
             });
-        this.gameplayPrompt = `New Save created at ${ stepContext.result }`;
+        this.gameplayPrompt = `New Save created at ${ stepContext.result }.  What would you like to do now?`;
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
