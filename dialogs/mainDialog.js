@@ -18,6 +18,7 @@ const SAVE_GAME_DIALOG = 'saveDialog';
 const GET_INFO_DIALOG = 'getInfoDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const LOAD_SAVE_DIALOG = 'loadSaveDialog';
+const FIRST_LINE_DIALOG = 'firstLineDialog'
 const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
 
@@ -58,6 +59,9 @@ class MainDialog extends ComponentDialog {
         this.addDialog(new TextPrompt(TEXT_PROMPT))
             .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
             .addDialog(new ChoicePrompt(CHOICE_PROMPT))
+            .addDialog(new WaterfallDialog(FIRST_LINE_DIALOG, [
+                this.sendIntroLine.bind(this)
+            ]))
             .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
                 this.checkUserEmail.bind(this),
                 this.confirmEmailStep.bind(this),
@@ -79,7 +83,7 @@ class MainDialog extends ComponentDialog {
                 this.promptSaveNameStep.bind(this),
                 this.sendSaveStep.bind(this)
             ]));
-        this.initialDialogId = GET_INFO_DIALOG;
+        this.initialDialogId = FIRST_LINE_DIALOG;
     }
 
     /**
@@ -97,15 +101,17 @@ class MainDialog extends ComponentDialog {
             await dialogContext.beginDialog(this.id);
         }
     }
-
-    async checkUserEmail(stepContext) {
+    async sendIntroLine(stepContext) {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
         await stepContext.context.sendActivity({
             attachments: [welcomeCard],
             speak: "Thanks for using ZorkBot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, when you decide stop playing say 'Stop ZorkBot', and I will end the session.  Once the game has begun, you can say ZorkBot Repeat to have the ZorkBot re-read the line to you.",
             inputHint: 'ignoringInput'
         });
-
+        return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
+    }
+    
+    async checkUserEmail(stepContext) {
         // email was set earlier in the loop
         if (this.email != null) {
             return await stepContext.next(stepContext);
