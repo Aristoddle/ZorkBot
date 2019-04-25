@@ -296,7 +296,7 @@ class MainDialog extends ComponentDialog {
             return await stepContext.prompt(CHOICE_PROMPT, {
                 style: 'auto',
                 prompt: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
-                speak: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
+                speak: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 retryPrompt: 'You need to choose one of the listed games to play.',
                 retrySpeak: 'Please Say, Hitchhiker\'s Guide, Spellbreaker, or Wishbringer',
                 choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
@@ -353,20 +353,37 @@ class MainDialog extends ComponentDialog {
 
     async loadSavesStep(stepContext) {
         this.gameSaves.push('New Game');
-        await stepContext.context.sendActivity({
-            text: `Loading ${ this.title }. \nWhich save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.`,
-            speak: `Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.`,
-            inputHint: 'ignoringInput'
-        });
-        let promptObj = {
-            // style: 'auto',
-            style: 'auto',
-            prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
-            speak: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
-            retryPrompt: 'You need to select one of the listed games to play.',
-            retrySpeak: 'You need to select one of the listed games to play.',
-            choices: this.gameSaves
-        };
+        let promptObj = {};
+        if (this.gameSaves.length == 0) {
+            await stepContext.context.sendActivity({
+                text: `This is your first playthrough of ${ this.title }, so please select New Game, and let's get started.`,
+                speak: `This is your first playthrough of ${ this.title }, so please select New Game, and let's get started.`,
+                inputHint: 'ignoringInput'
+            });
+            promptObj = {
+                // style: 'auto',
+                style: 'auto',
+                prompt: `This is your first playthrough of ${ this.title }, so please select New Game, and let's get started.`,
+                retryPrompt: 'You need to select one of the listed games to play.',
+                retrySpeak: 'You need to select one of the listed games to play.',
+                choices: this.gameSaves
+            };
+        } else {
+            await stepContext.context.sendActivity({
+                text: `Loading ${ this.title }. \nWhich save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.`,
+                speak: `Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.`,
+                inputHint: 'ignoringInput'
+            });
+            promptObj = {
+                // style: 'auto',
+                style: 'auto',
+                prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
+                speak: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
+                retryPrompt: 'You need to select one of the listed games to play.',
+                retrySpeak: 'You need to select one of the listed games to play.',
+                choices: this.gameSaves
+            };
+        }
         return await stepContext.prompt(CHOICE_PROMPT, promptObj);
         // return await stepContext.prompt(TEXT_PROMPT, "test prompt");
     }
