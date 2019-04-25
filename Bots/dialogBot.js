@@ -35,7 +35,7 @@ class DialogBot extends ActivityHandler {
 
         //     // // Save any state changes. The load happened during the execution of the Dialog.
         //     // await this.conversationState.saveChanges(context, false);
-        //     // await this.userState.saveChanges(context, false);   
+        //     // await this.userState.saveChanges(context, false);
         // });
         this.onMessage(async context => {
             this.logger.log('Running dialog with Message Activity.');
@@ -47,14 +47,6 @@ class DialogBot extends ActivityHandler {
             await this.conversationState.saveChanges(context, false);
             await this.userState.saveChanges(context, false);
         });
-
-        // this.onTurn(async context => {
-        //     if (context.activity.type == 'message') {
-        //         this.onMessage(context);
-        //     }
-        //     if (context.activity.ty)
-        //     console.log(context);
-        // });
     }
 }
 
