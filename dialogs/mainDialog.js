@@ -100,8 +100,9 @@ class MainDialog extends ComponentDialog {
 
     async checkUserEmail(stepContext) {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
-        stepContext.context.sendActivity({ 
-            attachments: [welcomeCard], 
+        await stepContext.context.sendActivity({ 
+            attachments: [welcomeCard],
+            speak: "Thanks for playing the Zorkbot.  I built this application to create a modern interface to classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would ever like to stop playing, say 'Stop ZorkBot', and I will end the session.",
             inputHint: 'ignoringInput' 
         });
 
@@ -170,7 +171,8 @@ class MainDialog extends ComponentDialog {
             });
         } else {
             return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name`
+                prompt: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name`,
+                speak:`An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name`,
             });
         }
     }
@@ -216,7 +218,8 @@ class MainDialog extends ComponentDialog {
         }
         if (lastGame != null) {
             return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: `Your last saved game was for the game ${ lastGame }.  Would you like to continue playing ${ lastGame }?`
+                prompt: `Your last saved game was for the game ${ lastGame }.  Would you like to continue playing ${ lastGame }?`,
+                speak: `Your last saved game was for the game ${ lastGame }.  Would you like to continue playing ${ lastGame }?`
             });
         } else {
             return await stepContext.next(stepContext);
@@ -239,7 +242,9 @@ class MainDialog extends ComponentDialog {
         return await stepContext.prompt(CHOICE_PROMPT, {
             style: 'auto',
             prompt: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
+            speak: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
             retryPrompt: 'Please say Zork, or Other I.F.',
+            retrySpeak: 'Please say Zork, or Other I.F.', 
             choices: ['Zork', 'Other I.F.']
         });
     }
@@ -249,14 +254,18 @@ class MainDialog extends ComponentDialog {
             return await stepContext.prompt(CHOICE_PROMPT, {
                 style: 'auto',
                 prompt: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
+                speak: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
                 retryPrompt: 'Please indicate the Zork title you would like to play.',
+                retrySpeak: 'Please indicate the Zork title you would like to play.',
                 choices: ['Zork One', 'Zork Two', 'Zork Three']
             });
         } else {
             return await stepContext.prompt(CHOICE_PROMPT, {
                 style: 'auto',
                 prompt: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
+                speak: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 retryPrompt: 'You need to choose one of the listed games to play.',
+                retrySpeak: 'You need to choose one of the listed games to play.',
                 choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
             });
         }
@@ -315,7 +324,9 @@ class MainDialog extends ComponentDialog {
             // style: 'auto',
             style: 'auto',
             prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
+            speak: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
             retryPrompt: 'You need to select one of the listed games to play.',
+            retrySpeak: 'You need to select one of the listed games to play.',
             choices: this.gameSaves
         };
         return await stepContext.prompt(CHOICE_PROMPT, promptObj);
