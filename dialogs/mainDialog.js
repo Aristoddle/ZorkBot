@@ -105,7 +105,7 @@ class MainDialog extends ComponentDialog {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
         await stepContext.context.sendActivity({
             attachments: [welcomeCard],
-            speak: "Thanks for using ZorkBot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, when you decide stop playing say 'Stop ZorkBot', and I will end the session.  Once the game has begun, you can say ZorkBot Repeat to have the ZorkBot re-read the line to you.",
+            speak: "Thanks for using the Zorkbot. \nI built this application to create a modern interface for classic Interactive Fiction games like Zork, Wishbringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files and select the game that you would like to play. \nAlso, when you decide to stop playing say 'Stop ZorkBot', and I will end the session. You can also say 'ZorkBot Repeat' to have the ZorkBot re-read the game output to you.",
             inputHint: 'ignoringInput'
         });
         return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
@@ -148,15 +148,14 @@ class MainDialog extends ComponentDialog {
                 return await stepContext.prompt(TEXT_PROMPT, {
                     prompt: 'this.enterEmailPrompt' });
             }
-        } else {
-            await stepContext.context.sendActivity({
-                text: this.enterEmailPrompt,
-                speak: this.enterEmailPrompt,
-                inputHint: 'ignoringInput'
-            });
-            return await stepContext.prompt(TEXT_PROMPT, {
-                prompt: 'enterEmailPrompt' });
         }
+        await stepContext.context.sendActivity({
+            text: this.enterEmailPrompt,
+            speak: this.enterEmailPrompt,
+            inputHint: 'ignoringInput'
+        });
+        return await stepContext.prompt(TEXT_PROMPT, {
+            prompt: this.enterEmailPrompt });
     }
 
     // setting users and picking games are going to be some of the more
