@@ -2,7 +2,6 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "type": "AdaptiveCard",
   "version": "1.0",
-  "speak":  "Thanks for playing the Zorkbot.  I built this application to create a modern interface to classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would ever like to stop playing, say 'Stop ZorkBot', and I will end the session.",
   "body": [
     {
       "type": "TextBlock",
@@ -15,6 +14,15 @@
       "maxLines": 0
     },
     {
+      "type": "TextBlock",
+      "size": "default",
+      "weight": "bolder",
+      "text": "Senior Project of Joe Lanzone \nYale University, Spring 2019",
+      "spacing": "medium",
+      "wrap": true,
+      "maxLines": 0
+    }
+    {
       "type": "Image",
       "url": "https://i.imgur.com/9MBeQvG.jpg",
       "size":"auto"
@@ -22,16 +30,7 @@
     {
       "type": "TextBlock",
       "size": "default",
-      "text": "Thanks for using the Zorkbot. \nI built this application to create a modern interface to classic Interactive Fiction games like Zork, Wishbringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files and select the game that you would like to play.  \nThen, we'll be good to go! Also, if you would ever like to stop playing, say 'Stop ZorkBot', and I will end the session.",
-      "wrap": true,
-      "maxLines": 0
-    },
-    {
-      "type": "TextBlock",
-      "size": "default",
-      "weight": "bolder",
-      "text": "Senior Project of Joe Lanzone: Yale University, Spring 2019",
-      "spacing": "medium",
+      "text": "Thanks for using the Zorkbot. \nI built this application to create a modern interface to classic Interactive Fiction games like Zork, Wishbringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files and select the game that you would like to play.  Then, we'll be good to go! \nAlso, if you would ever like to stop playing, say 'Stop ZorkBot', and I will end the session. You can also say 'ZorkBot Repeat' to have the ZorkBot re-read the game output to you.",
       "wrap": true,
       "maxLines": 0
     }

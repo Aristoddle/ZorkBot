@@ -38,8 +38,8 @@ class MainDialog extends ComponentDialog {
         this.lastLine = '';
 
         this.logger = logger;
-        this.gameplayPrompt = 'What should we do\?';
-        this.enterEmailPrompt = "It appears that the bot wasn't able to extract your email address from the current context. Please supply a unique identifier that ZorkBot can use to manage your saves and gameplay history.";
+        this.gameplayPrompt = 'What should we do?';
+        this.enterEmailPrompt = "It appears the bot wasn't able to extract your email address from the current context. Please supply a unique identifier that ZorkBot can use to manage your saves and gameplay history.";
 
         this.email = null;
         this.userExists = false;
@@ -102,7 +102,7 @@ class MainDialog extends ComponentDialog {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
         await stepContext.context.sendActivity({
             attachments: [welcomeCard],
-            speak: "Thanks for using ZorkBot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would decide stop playing, say 'Stop ZorkBot', and I will end the session.  One the game has begun, you can say ZorkBot Repeat to have the ZorkBot re-read the line to you.",
+            speak: "Thanks for using ZorkBot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would decide stop playing, say 'Stop ZorkBot', and I will end the session.  Once the game has begun, you can say ZorkBot Repeat to have the ZorkBot re-read the line to you.",
             inputHint: 'ignoringInput'
         });
 
@@ -176,7 +176,7 @@ class MainDialog extends ComponentDialog {
         this.zork3 = newUserResponse.profile.zork3;
 
         if (this.newUser) {
-            stepContext.context.sendActivity({
+            await stepContext.context.sendActivity({
                 text: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`,
                 speak: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`,
                 inputHint: 'ignoringInput'
@@ -185,7 +185,7 @@ class MainDialog extends ComponentDialog {
                 prompt: `Please answer Yes/No`
             });
         } else {
-            stepContext.context.sendActivity({
+            await stepContext.context.sendActivity({
                 text: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`,
                 speak: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name.`,
                 inputHint: 'ignoringInput'
@@ -237,7 +237,7 @@ class MainDialog extends ComponentDialog {
             }
         }
         if (lastGame != null) {
-            stepContext.context.sendActivity({
+            await stepContext.context.sendActivity({
                 text: `Your last saved game was for the game ${ lastGame }.  Would you like to continue playing ${ lastGame }?`,
                 speak: `Your last saved game was for the game ${ lastGame }.  Would you like to continue playing ${ lastGame }?`,
                 inputHint: 'ignoringInput'
@@ -264,7 +264,7 @@ class MainDialog extends ComponentDialog {
     }
 
     async zorkOrNoStep(stepContext) {
-        stepContext.context.sendActivity({
+        await stepContext.context.sendActivity({
             text: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
             speak: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
             inputHint: 'ignoringInput'
@@ -281,7 +281,7 @@ class MainDialog extends ComponentDialog {
 
     async selectGameStep(stepContext) {
         if (stepContext.result.value == 'Zork') {
-            stepContext.context.sendActivity({
+            await stepContext.context.sendActivity({
                 text: 'Alright! Among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
                 speak: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
                 inputHint: 'ignoringInput'
@@ -295,7 +295,7 @@ class MainDialog extends ComponentDialog {
                 choices: ['Zork One', 'Zork Two', 'Zork Three']
             });
         } else {
-            stepContext.context.sendActivity({
+            await stepContext.context.sendActivity({
                 text: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 speak: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 inputHint: 'ignoringInput'
@@ -360,7 +360,7 @@ class MainDialog extends ComponentDialog {
 
     async loadSavesStep(stepContext) {
         this.gameSaves.push('New Game');
-        stepContext.context.sendActivity({
+        await stepContext.context.sendActivity({
             text: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
             speak: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
             inputHint: 'ignoringInput'
@@ -463,7 +463,7 @@ class MainDialog extends ComponentDialog {
     }
 
     async confirmSaveStep(stepContext) {
-        stepContext.context.sendActivity({
+        await stepContext.context.sendActivity({
             text: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.',
             speak: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.',
             inputHint: 'ig'
