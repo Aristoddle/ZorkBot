@@ -100,7 +100,7 @@ class MainDialog extends ComponentDialog {
 
     async checkUserEmail(stepContext) {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
-        await stepContext.context.sendActivity({ attachments: [welcomeCard] });
+        stepContext.context.sendActivity({ attachments: [welcomeCard] });
         // email was set earlier in the loop
         if (this.email != null) {
             return await stepContext.next(stepContext);
