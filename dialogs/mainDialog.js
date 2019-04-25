@@ -18,7 +18,7 @@ const SAVE_GAME_DIALOG = 'saveDialog';
 const GET_INFO_DIALOG = 'getInfoDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
 const LOAD_SAVE_DIALOG = 'loadSaveDialog';
-const FIRST_LINE_DIALOG = 'firstLineDialog'
+const FIRST_LINE_DIALOG = 'firstLineDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
 
@@ -110,7 +110,7 @@ class MainDialog extends ComponentDialog {
         });
         return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
     }
-    
+
     async checkUserEmail(stepContext) {
         // email was set earlier in the loop
         if (this.email != null) {
@@ -118,7 +118,7 @@ class MainDialog extends ComponentDialog {
         }
 
         if (stepContext.message && stepContext.message.entities) {
-            var userInfo = stepContext.message.entities.find((e) => {
+            var userInfo = await stepContext.message.entities.find((e) => {
                 return e.type === 'UserInfo';
             });
 
@@ -128,7 +128,7 @@ class MainDialog extends ComponentDialog {
                     speak: `UserInfo Found: ${ userInfo }`,
                     inputHint: 'expectingInput'
                 });
-                var foundEmail = userInfo.email;
+                var foundEmail = await userInfo.email;
                 if (foundEmail && foundEmail !== '') {
                     await stepContext.context.sendActivity({
                         text: `Email found: ${ foundEmail }`,
@@ -136,7 +136,7 @@ class MainDialog extends ComponentDialog {
                         inputHint: 'expectingInput'
                     });
 
-                    this.email = foundEmail;
+                    this.email = await foundEmail;
                     return await stepContext.next(stepContext);
                 }
             } else {
@@ -163,7 +163,7 @@ class MainDialog extends ComponentDialog {
     // them
     async confirmEmailStep(stepContext) {
         if (this.email == null) {
-            this.email = stepContext.result;
+            this.email = await stepContext.result;
         }
         let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.email }`, `${ APIROOT }/user?email=${ this.email }`)
             .then(response => {
@@ -171,14 +171,14 @@ class MainDialog extends ComponentDialog {
                 console.log(response.status);
                 return response.data;
             });
-        this.newUser = newUserResponse.newUser;
-        this.email = newUserResponse.profile.email;
-        this.hike = newUserResponse.profile.hike;
-        this.wish = newUserResponse.profile.wish;
-        this.spell = newUserResponse.profile.spell;
-        this.zork1 = newUserResponse.profile.zork1;
-        this.zork2 = newUserResponse.profile.zork2;
-        this.zork3 = newUserResponse.profile.zork3;
+        this.newUser = await newUserResponse.newUser;
+        this.email = await newUserResponse.profile.userEmail;
+        this.hike = await newUserResponse.profile.hike;
+        this.wish = await newUserResponse.profile.wish;
+        this.spell = await newUserResponse.profile.spell;
+        this.zork1 = await newUserResponse.profile.zork1;
+        this.zork2 = await newUserResponse.profile.zork2;
+        this.zork3 = await newUserResponse.profile.zork3;
 
         if (this.newUser) {
             await stepContext.context.sendActivity({
@@ -187,7 +187,7 @@ class MainDialog extends ComponentDialog {
                 inputHint: 'ignoringInput'
             });
             return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`,
+                prompt: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`
             });
         } else {
             await stepContext.context.sendActivity({
@@ -335,7 +335,7 @@ class MainDialog extends ComponentDialog {
             this.gameSaves = this.hike;
             break;
         case 'Spellbreaker':
-            this.title = 'zork1';
+            this.title = 'spell';
             this.gameSaves = this.spell;
             break;
         case 'Wishbringer':
@@ -366,8 +366,8 @@ class MainDialog extends ComponentDialog {
     async loadSavesStep(stepContext) {
         this.gameSaves.push('New Game');
         await stepContext.context.sendActivity({
-            text: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
-            speak: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.',
+            text: `Loading ${ this.title }. \nWhich save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.`,
+            speak: `Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present.`,
             inputHint: 'ignoringInput'
         });
         let promptObj = {
@@ -384,7 +384,7 @@ class MainDialog extends ComponentDialog {
     }
 
     async startGameStep(stepContext) {
-        let save = stepContext.result.value;
+        let save = await stepContext.result.value;
         let userObject = {};
 
         if (save == 'New Game') {
@@ -474,7 +474,7 @@ class MainDialog extends ComponentDialog {
             inputHint: 'ignoringInput'
         });
         return await stepContext.prompt(CONFIRM_PROMPT, {
-            prompt: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.',
+            prompt: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.'
         });
     }
 
