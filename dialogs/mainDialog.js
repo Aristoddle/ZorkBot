@@ -102,7 +102,7 @@ class MainDialog extends ComponentDialog {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
         await stepContext.context.sendActivity({
             attachments: [welcomeCard],
-            speak: "Thanks for using ZorkBot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would decide stop playing, say 'Stop ZorkBot', and I will end the session.  Once the game has begun, you can say ZorkBot Repeat to have the ZorkBot re-read the line to you.",
+            speak: "Thanks for using ZorkBot.  I built this application to create a modern interface for classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, when you decide stop playing say 'Stop ZorkBot', and I will end the session.  Once the game has begun, you can say ZorkBot Repeat to have the ZorkBot re-read the line to you.",
             inputHint: 'ignoringInput'
         });
 
