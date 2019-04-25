@@ -112,10 +112,10 @@ class MainDialog extends ComponentDialog {
             });
             
             if (userInfo) {
-                await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`);
+                await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`, `UserInfo Found: ${ userInfo }`);
                 var foundEmail = userInfo.email;
                 if (foundEmail && foundEmail !== '') {
-                    await stepContext.context.sendActivity(`Email found: ${ foundEmail }`);
+                    await stepContext.context.sendActivity(`Email found: ${ foundEmail }`,`Email found: ${ foundEmail }`);
 
                     this.email = foundEmail;
                     return await stepContext.next(stepContext);
@@ -137,7 +137,7 @@ class MainDialog extends ComponentDialog {
         if (this.email == null) {
             this.email = stepContext.result;
         }
-        let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.email }`)
+        let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.email }`, `${ APIROOT }/user?email=${ this.email }`)
             .then(response => {
                 console.log(response.data);
                 console.log(response.status);
@@ -217,7 +217,7 @@ class MainDialog extends ComponentDialog {
 
     async zorkOrNoStep(stepContext) {
         return await stepContext.prompt(CHOICE_PROMPT, {
-            style: 'suggestedAction',
+            style: 'auto',
             prompt: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
             retryPrompt: 'Please say Zork, or Other I.F.',
             choices: ['Zork', 'Other I.F.']
@@ -225,22 +225,16 @@ class MainDialog extends ComponentDialog {
     }
 
     async selectGameStep(stepContext) {
-        let zorkprompt = {
-            style: 'suggestedAction',
-            prompt: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
-            retryPrompt: 'Please indicate the Zork title you would like to play.',
-            choices: ['Zork One', 'Zork Two', 'Zork Three']
-        }
         if (stepContext.result.value == 'Zork') {
             return await stepContext.prompt(CHOICE_PROMPT, {
-                style: 'suggestedAction',
+                style: 'auto',
                 prompt: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
                 retryPrompt: 'Please indicate the Zork title you would like to play.',
                 choices: ['Zork One', 'Zork Two', 'Zork Three']
             });
         } else {
             return await stepContext.prompt(CHOICE_PROMPT, {
-                style: 'suggestedAction',
+                style: 'auto',
                 prompt: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 retryPrompt: 'You need to choose one of the listed games to play.',
                 choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
@@ -298,8 +292,8 @@ class MainDialog extends ComponentDialog {
     async loadSavesStep(stepContext) {
         this.gameSaves.push('New Game');
         let promptObj = {
-            // style: 'heroCard',
-            style: 'heroCard',
+            // style: 'auto',
+            style: 'auto',
             prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
             retryPrompt: 'You need to select one of the listed games to play.',
             choices: this.gameSaves
@@ -319,8 +313,8 @@ class MainDialog extends ComponentDialog {
                     console.log(response.status); // ex.: 200
                     return response.data;
                 });
-            await stepContext.context.sendActivity(userObject.titleInfo);
-            await stepContext.context.sendActivity(userObject.firstLine);
+            await stepContext.context.sendActivity(userObject.titleInfo, userObject.titleInfo);
+            await stepContext.context.sendActivity(userObject.firstLine, userObject.firstLine);
             this.gameplayPrompt = 'What would you like to do?';
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         } else {
@@ -330,8 +324,8 @@ class MainDialog extends ComponentDialog {
                     console.log(response.status); // ex.: 200
                     return response.data;
                 });
-            await stepContext.context.sendActivity(userObject.titleInfo);
-            await stepContext.context.sendActivity(userObject.firstLine);
+            await stepContext.context.sendActivity(userObject.titleInfo, userObject.titleInfo);
+            await stepContext.context.sendActivity(userObject.firstLine, userObject.firstLine);
             this.gameplayPrompt = 'What would you like to do?';
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
@@ -360,7 +354,8 @@ class MainDialog extends ComponentDialog {
 
         this.gameplayPrompt = await response.cmdOutput;
         if ((/stop zorkbot/i).test(command.text)) {
-            await stepContext.context.sendActivity(`Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`);
+            await stepContext.context.sendActivity(`Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`, 
+            `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`);
             return await stepContext.endDialog(stepContext);
         // TODO: pull save intent from LUIS
         } else if (((/save game/i).test(command.text)) || ((/save/i).test(command.text))) {
