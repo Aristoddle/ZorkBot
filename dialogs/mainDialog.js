@@ -22,8 +22,8 @@ const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
 
 // const DEBUG = false;
-const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
-// const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
+// const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
+const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
 
 var axios = require('axios');
 
