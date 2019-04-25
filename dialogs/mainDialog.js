@@ -118,7 +118,7 @@ class MainDialog extends ComponentDialog {
         }
 
         if (stepContext.context.activity && stepContext.context.activity.entities) {
-            var userInfo = await stepContext.message.entities.find((e) => {
+            var userInfo = await stepContext.context.activity.entities.find((e) => {
                 return e.type === 'UserInfo';
             });
 
