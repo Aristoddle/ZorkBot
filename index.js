@@ -15,7 +15,7 @@ const restify = require('restify');
 const { BotFrameworkAdapter, MemoryStorage, ConversationState, UserState } = require('botbuilder');
 
 // This bot's main dialog.
-const { DialogAndWelcomeBot } = require('./bots/dialogAndWelcomeBot');
+const { DialogBot } = require('./bots/dialogBot');
 const { MainDialog } = require('./dialogs/mainDialog');
 
 // Note: Ensure you have a .env file and include LuisAppId, LuisAPIKey and LuisAPIHostName.
@@ -73,7 +73,7 @@ const logger = console;
 
 // Create the main dialog.
 const dialog = new MainDialog(logger);
-const bot = new DialogAndWelcomeBot(conversationState, userState, dialog, logger);
+const bot = new DialogBot(conversationState, userState, dialog, logger);
 
 // Create HTTP server
 let server = restify.createServer();

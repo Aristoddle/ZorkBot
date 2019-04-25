@@ -27,16 +27,6 @@ class DialogBot extends ActivityHandler {
         this.dialog = dialog;
         this.logger = logger;
         this.dialogState = this.conversationState.createProperty('DialogState');
-        // this.onTurn(async context => {
-        //     this.logger.log('Turn');
-
-        //     // // Run the Dialog with the new message Activity.
-        //     // await this.dialog.run(context, this.dialogState);
-
-        //     // // Save any state changes. The load happened during the execution of the Dialog.
-        //     // await this.conversationState.saveChanges(context, false);
-        //     // await this.userState.saveChanges(context, false);
-        // });
         this.onMessage(async context => {
             this.logger.log('Running dialog with Message Activity.');
 
@@ -46,6 +36,18 @@ class DialogBot extends ActivityHandler {
             // Save any state changes. The load happened during the execution of the Dialog.
             await this.conversationState.saveChanges(context, false);
             await this.userState.saveChanges(context, false);
+        });
+
+        this.onMembersAdded(async context => {
+            const membersAdded = context.activity.membersAdded;
+            for (let cnt = 0; cnt < membersAdded.length; cnt++) {
+                if (membersAdded[cnt].id !== context.activity.recipient.id) {
+                    // Run the Dialog with the new message Activity.
+                    await this.dialog.run(context, this.dialogState);
+                    await this.conversationState.saveChanges(context, false);
+                    await this.userState.saveChanges(context, false);
+                }
+            }
         });
     }
 }

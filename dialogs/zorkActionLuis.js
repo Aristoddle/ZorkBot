@@ -3,7 +3,7 @@
 
 const { LuisRecognizer } = require('botbuilder-ai');
 
-class LuisHelper {
+class ZorkActionLuis {
     /**
      * Returns an object with preformatted LUIS results for the bot's dialogs to consume.
      * @param {*} logger
@@ -12,7 +12,6 @@ class LuisHelper {
     static async executeLuisQuery(logger, context) {
         const actionDetails = {};
 
-        //try initting LUIS
         try {
             const recognizer = new LuisRecognizer({
                 applicationId: process.env.LuisAppId,
@@ -21,8 +20,6 @@ class LuisHelper {
             }, {}, true);
 
             const recognizerResult = await recognizer.recognize(context);
-            // TODO: Figure this out
-            //Okay, so HERE, we are pulling the real shit from LUIS...  
             const intent = LuisRecognizer.topIntent(recognizerResult);
             const entities = recognizerResult.entities;
             const text = recognizerResult.text;
@@ -30,17 +27,6 @@ class LuisHelper {
             actionDetails.entities = entities;
             actionDetails.intent = intent;
             actionDetails.text = text;
-
-            if (intent === 'Book_flight') {
-                // We need to get the result from the LUIS JSON which at every level returns an array
-
-                bookingDetails.destination = LuisHelper.parseCompositeEntity(recognizerResult, 'To', 'Airport');
-                bookingDetails.origin = LuisHelper.parseCompositeEntity(recognizerResult, 'From', 'Airport');
-
-                // This value will be a TIMEX. And we are only interested in a Date so grab the first result and drop the Time part.
-                // TIMEX is a format that represents DateTime expressions that include some ambiguity. e.g. missing a Year.
-                bookingDetails.travelDate = LuisHelper.parseDatetimeEntity(recognizerResult);
-            }
         } catch (err) {
             logger.warn(`LUIS Exception: ${ err } Check your LUIS configuration`);
         }
@@ -70,4 +56,4 @@ class LuisHelper {
     }
 }
 
-module.exports.LuisHelper = LuisHelper;
+module.exports.ZorkActionLuis = ZorkActionLuis;

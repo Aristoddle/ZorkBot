@@ -8,7 +8,8 @@
 // import { } from 'dotenv';
 
 const { ComponentDialog, DialogSet, DialogTurnStatus, ChoicePrompt, TextPrompt, ConfirmPrompt, WaterfallDialog } = require('botbuilder-dialogs');
-const { LuisHelper } = require('./luisHelper');
+const { ZorkActionLuis } = require('./zorkActionLuis');
+const { PickGameLuis } = require('./pickGameLuis');
 const { CardFactory } = require('botbuilder-core');
 
 const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
@@ -25,7 +26,7 @@ const CONFIRM_PROMPT = 'ConfirmPrompt';
 // const DEBUG = false;
 // const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
 const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
- 
+
 var axios = require('axios');
 
 class MainDialog extends ComponentDialog {
@@ -56,7 +57,7 @@ class MainDialog extends ComponentDialog {
         this.lastGame = 'AutoSave';
         this.gameSaves = [];
         this.systemProvidedEmail = false;
-        this.makingNewAccount    = false;
+        this.makingNewAccount = false;
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
             .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
@@ -160,7 +161,7 @@ class MainDialog extends ComponentDialog {
                 console.log(response.status);
                 return response.data;
             });
-        
+
         this.newUser = await newUserResponse.newUser;
         this.lastGame = await newUserResponse.profile.lastGame;
         this.hike = await newUserResponse.profile.hike;
@@ -317,50 +318,44 @@ class MainDialog extends ComponentDialog {
     }
 
     async setTitleStep(stepContext) {
-        switch (stepContext.result.value) {
-        case 'Zork One':
-            this.title = 'zork1';
-            this.gameSaves = this.zork1;
-            break;
-        case 'Zork Two':
-            this.title = 'zork2';
-            this.gameSaves = this.zork2;
-            break;
-        case 'Zork Three':
-            this.title = 'zork3';
-            this.gameSaves = this.zork3;
-            break;
-        case 'Hitchhiker\'s Guide':
-            this.title = 'hike';
-            this.gameSaves = this.hike;
-            break;
-        case 'Spellbreaker':
-            this.title = 'spell';
-            this.gameSaves = this.spell;
-            break;
-        case 'Wishbringer':
-            this.title = 'wish';
-            this.gameSaves = this.wish;
-            break;
+        if (process.env.GameChoiceLuisAppID &&
+            process.env.GameChoiceLuisAPIKey &&
+            process.env.GameChoiceLuisAPIHostName) {
+            let game = await PickGameLuis.executeLuisQuery(this.logger, stepContext.context);
+            this.title = await game.intent;
+            this.gameSaves = await this[game.intent];
         }
-        return await stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);
-    }
+        if (this.title == null) {
+            switch (stepContext.result.value) {
+            case 'Zork One':
+                this.title = 'zork1';
+                this.gameSaves = this.zork1;
+                break;
+            case 'Zork Two':
+                this.title = 'zork2';
+                this.gameSaves = this.zork2;
+                break;
+            case 'Zork Three':
+                this.title = 'zork3';
+                this.gameSaves = this.zork3;
+                break;
+            case 'Hitchhiker\'s Guide':
+                this.title = 'hike';
+                this.gameSaves = this.hike;
+                break;
+            case 'Spellbreaker':
+                this.title = 'spell';
+                this.gameSaves = this.spell;
+                break;
+            case 'Wishbringer':
+                this.title = 'wish';
+                this.gameSaves = this.wish;
+                break;
+            }
+        }
 
-    async getSavesForAccount(title) {
-        switch (title) {
-        case 'Zork One':
-            return this.zork1;
-        case 'Zork Two':
-            return this.zork2;
-        case 'Zork Three':
-            return this.zork3;
-        case 'Hitchhiker\'s Guide':
-            return this.hike;
-        case 'Spellbreaker':
-            return this.spell;
-        case 'Wishbringer':
-            return this.wish;
-        }
+
+        return await stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);
     }
 
     async loadSavesStep(stepContext) {
@@ -448,7 +443,7 @@ class MainDialog extends ComponentDialog {
         if (process.env.LuisAppId &&
             process.env.LuisAPIKey &&
             process.env.LuisAPIHostName) {
-            command = await LuisHelper.executeLuisQuery(this.logger, stepContext.context);
+            command = await ZorkActionLuis.executeLuisQuery(this.logger, stepContext.context);
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
