@@ -100,7 +100,11 @@ class MainDialog extends ComponentDialog {
 
     async checkUserEmail(stepContext) {
         const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
-        // stepContext.context.sendActivity({ attachments: [welcomeCard] });
+        stepContext.context.sendActivity({ 
+            attachments: [welcomeCard], 
+            inputHint: 'ignoringInput' 
+        });
+
         // email was set earlier in the loop
         if (this.email != null) {
             return await stepContext.next(stepContext);
@@ -110,12 +114,20 @@ class MainDialog extends ComponentDialog {
             var userInfo = stepContext.message.entities.find((e) => {
                 return e.type === 'UserInfo';
             });
-            
+
             if (userInfo) {
-                await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`, `UserInfo Found: ${ userInfo }`);
+                await stepContext.context.sendActivity({
+                    text: `UserInfo Found: ${ userInfo }`,
+                    speak: `UserInfo Found: ${ userInfo }`,
+                    inputHint: 'expectingInput'
+                });
                 var foundEmail = userInfo.email;
                 if (foundEmail && foundEmail !== '') {
-                    await stepContext.context.sendActivity(`Email found: ${ foundEmail }`,`Email found: ${ foundEmail }`);
+                    await stepContext.context.sendActivity({
+                        text: `Email found: ${ foundEmail }`, 
+                        speak: `Email found: ${ foundEmail }`,
+                        inputHint: 'expectingInput'
+                    });
 
                     this.email = foundEmail;
                     return await stepContext.next(stepContext);
@@ -165,7 +177,11 @@ class MainDialog extends ComponentDialog {
 
     async loopEmailConfirmStep(stepContext) {
         if (stepContext.result) {
-            await stepContext.context.sendActivity(`Registered ${ this.email }.`);
+            await stepContext.context.sendActivity({
+                text: `Registered ${ this.email }.`,
+                speak: `Registered ${ this.email }.`, 
+                inputHint: "ignoringInput"
+            });
             return await stepContext.next(stepContext);
         } else {
             this.email = null;
@@ -211,7 +227,11 @@ class MainDialog extends ComponentDialog {
         if (stepContext.result) {
             stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);
         } else {
-            return await stepContext.next(await stepContext.sendActivity('No recent saves found.'));
+            return await stepContext.next(await stepContext.sendActivity({
+                text: 'No recent saves found.', 
+                speak: 'No recent saves found.',
+                inputHint: "ignoringInput"
+            }));
         }
     }
 
@@ -243,7 +263,7 @@ class MainDialog extends ComponentDialog {
     }
 
     async setTitleStep(stepContext) {
-        switch(stepContext.result.value){
+        switch (stepContext.result.value) {
         case 'Zork One':
             this.title = 'zork1';
             this.gameSaves = this.zork1;
@@ -266,10 +286,10 @@ class MainDialog extends ComponentDialog {
             break;
         case 'Wishbringer':
             this.title = 'wish';
-            this.gameSaves =  this.wish;
+            this.gameSaves = this.wish;
             break;
         }
-        return await stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);         
+        return await stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);
     }
 
     async getSavesForAccount(title) {
@@ -299,7 +319,7 @@ class MainDialog extends ComponentDialog {
             choices: this.gameSaves
         };
         return await stepContext.prompt(CHOICE_PROMPT, promptObj);
-        //return await stepContext.prompt(TEXT_PROMPT, "test prompt");
+        // return await stepContext.prompt(TEXT_PROMPT, "test prompt");
     }
 
     async startGameStep(stepContext) {
@@ -313,10 +333,6 @@ class MainDialog extends ComponentDialog {
                     console.log(response.status); // ex.: 200
                     return response.data;
                 });
-            await stepContext.context.sendActivity(userObject.titleInfo, userObject.titleInfo);
-            await stepContext.context.sendActivity(userObject.firstLine, userObject.firstLine);
-            this.gameplayPrompt = 'What would you like to do?';
-            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         } else {
             userObject = await axios.get(`${ APIROOT }/start?title=${ this.title }&email=${ this.email }&save=${ save }`)
                 .then(response => {
@@ -324,11 +340,19 @@ class MainDialog extends ComponentDialog {
                     console.log(response.status); // ex.: 200
                     return response.data;
                 });
-            await stepContext.context.sendActivity(userObject.titleInfo, userObject.titleInfo);
-            await stepContext.context.sendActivity(userObject.firstLine, userObject.firstLine);
-            this.gameplayPrompt = 'What would you like to do?';
-            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
+        await stepContext.context.sendActivity({
+            text: userObject.titleInfo,
+            speak: userObject.titleInfo,
+            inputHint: "ignoringInput"
+        });
+        await stepContext.context.sendActivity({
+            text: userObject.firstLine,
+            speak: userObject.firstLine,
+            inputHint: "ignoringInput"
+        });
+        this.gameplayPrompt = 'What would you like to do?';
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
     async firstStepWrapperStep(stepContext) {
@@ -354,8 +378,11 @@ class MainDialog extends ComponentDialog {
 
         this.gameplayPrompt = await response.cmdOutput;
         if ((/stop zorkbot/i).test(command.text)) {
-            await stepContext.context.sendActivity(`Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`, 
-            `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`);
+            await stepContext.context.sendActivity( {
+                text: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`,
+                speak: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`,
+                inputHint: "ignoringInput"
+            });
             return await stepContext.endDialog(stepContext);
         // TODO: pull save intent from LUIS
         } else if (((/save game/i).test(command.text)) || ((/save/i).test(command.text))) {
