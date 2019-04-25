@@ -424,11 +424,11 @@ class MainDialog extends ComponentDialog {
     async firstStepWrapperStep(stepContext) {
         await stepContext.context.sendActivity({
             text: this.gameplayPrompt,
-            speak: this.gameplayPrompt + 'What should we do?',
-            inputHint: 'expectingInput'
+            speak: this.gameplayPrompt,
+            inputHint: 'ignoringInput'
         });
         return await stepContext.prompt(TEXT_PROMPT, {
-            prompt: this.gameplayPrompt + 'What should we do?' });
+            prompt: this.gameplayPrompt });
     }
 
     async processCommandStep(stepContext) {
@@ -443,7 +443,7 @@ class MainDialog extends ComponentDialog {
         if (((/zorkbot repeat/i).test(command.text)) || ((/save/i).test(command.text))) {
             await stepContext.context.sendActivity({
                 text: this.gameplayPrompt,
-                speak: this.gameplayPrompt + 'What should we do?',
+                speak: this.gameplayPrompt,
                 inputHint: 'expectingInput'
             });
             return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
