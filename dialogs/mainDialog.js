@@ -189,12 +189,12 @@ class MainDialog extends ComponentDialog {
                 return await stepContext.next(stepContext);
             } else {
                 await stepContext.context.sendActivity({
-                    text: `An account was found at ${ this.email }. Is this you?  If not, you should pick a new account name.`,
-                    speak: `An account was found at ${ this.email }. Is this you?  If not, you should pick a new account name.`,
+                    text: `An account was found at ${ this.email }. Is this you?  Reply "No" to pick a different account`,
+                    speak: `An account was found at ${ this.email }. Is this you?  Reply "No" to pick a different account`,
                     inputHint: 'ignoringInput'
                 });
                 return await stepContext.prompt(CONFIRM_PROMPT, {
-                    prompt: `An account was found at ${ this.email }. Is this you?  If not, you should pick a new account name.`
+                    prompt: `An account was found at ${ this.email }. Is this you?  Reply "No" to pick a different account`
                 });
             }
         }
