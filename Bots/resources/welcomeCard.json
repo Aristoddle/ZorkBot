@@ -9,7 +9,7 @@
       "size": "large",
       "weight": "bolder",
       "horizontalAlignment": "center",
-      "text": "Welcome to The Zorkbot!",
+      "text": "Welcome to The ZorkBot!",
       "wrap": true,
       "maxLines": 0
     },

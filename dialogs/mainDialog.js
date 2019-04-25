@@ -40,7 +40,7 @@ class MainDialog extends ComponentDialog {
 
         this.logger = logger;
         this.gameplayPrompt = 'What should we do?';
-        this.enterEmailPrompt = "It appears the bot wasn't able to extract your email address from the current context. Please supply a unique identifier that ZorkBot can use to manage your saves and gameplay history.";
+        this.enterEmailPrompt = "It appears the bot wasn't able to extract your email address from the current context. Please supply a unique identifier that Zork Bot can use to manage your saves and gameplay history.";
 
         this.email = null;
         this.userExists = false;
@@ -183,11 +183,11 @@ class MainDialog extends ComponentDialog {
         if (this.newUser) {
             await stepContext.context.sendActivity({
                 text: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`,
-                speak: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`,
+                speak: `There was no Zork Bot account found at ${ this.email }. Should I create one there?`,
                 inputHint: 'ignoringInput'
             });
             return await stepContext.prompt(CONFIRM_PROMPT, {
-                prompt: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`
+                prompt: `There was no Zork Bot account found at ${ this.email }. Should I create one there?`
             });
         } else {
             await stepContext.context.sendActivity({
