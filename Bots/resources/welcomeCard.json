@@ -2,70 +2,38 @@
   "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
   "type": "AdaptiveCard",
   "version": "1.0",
+  "speak":  "Thanks for playing the Zorkbot.  I built this application to create a modern interface to classic Interactive Fiction games like Zork, WishBringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files, and select the game that you would like to play.  Then, we'll be good to go!  Also, if you would ever like to stop playing, say 'Stop ZorkBot', and I will end the session.",
   "body": [
-    {
-      "type": "Image",
-      "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQtB3AwMUeNoq4gUBGe6Ocj8kyh3bXa9ZbV7u1fVKQoyKFHdkqU",
-      "size": "stretch"
-    },
     {
       "type": "TextBlock",
       "spacing": "medium",
-      "size": "default",
+      "size": "large",
       "weight": "bolder",
-      "text": "Welcome to Joe Lanzone's Bot for text-based adventure games",
+      "horizontalAlignment": "center",
+      "text": "Welcome to The Zorkbot!",
+      "wrap": true,
+      "maxLines": 0
+    },
+    {
+      "type": "Image",
+      "url": "https://i.imgur.com/9MBeQvG.jpg",
+      "size":"auto"
+    },
+    {
+      "type": "TextBlock",
+      "size": "default",
+      "text": "Thanks for using the Zorkbot. \nI built this application to create a modern interface to classic Interactive Fiction games like Zork, Wishbringer, and The Hitchhiker's Guide to the Galaxy.  Before we begin, we'll need to set up an account to store your save files and select the game that you would like to play.  \nThen, we'll be good to go! Also, if you would ever like to stop playing, say 'Stop ZorkBot', and I will end the session.",
       "wrap": true,
       "maxLines": 0
     },
     {
       "type": "TextBlock",
       "size": "default",
-      "text": "From here, select a game you would like to play, and we can get started",
+      "weight": "bolder",
+      "text": "Senior Project of Joe Lanzone: Yale University, Spring 2019",
+      "spacing": "medium",
       "wrap": true,
       "maxLines": 0
-    },
-    {
-      "type": "Container",
-      "selectAction": {
-        "Type": "Action.Submit",
-        "title": "Play Zork 1",
-        "data": "Launch Zork 1"
-      }
-    }
-    {
-      "type": "Container",
-      "selectAction": {
-        "Type": "Action.Submit",
-        "title": "Play Zork 2",
-        "data": "Launch Zork 2"
-      }
-    }
-  ],
-  "actions": [
-    {
-      "type": "Action.Submit",
-      "title": "Play Zork 2",
-      "data": "Launch Zork 2"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play Zork 3",
-      "data": "Launch Zork 3"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play The Hitchhiker's Guide ",
-      "data": "Launch The Hitchhiker's Guide to the Galaxy"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play Spellbreaker",
-      "data": "Launch Spellbreaker"
-    },
-    {
-      "type": "Action.Submit",
-      "title": "Play Wishbringer",
-      "data": "Launch Wishbringer"
     }
   ]
 }

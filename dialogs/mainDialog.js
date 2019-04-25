@@ -11,19 +11,19 @@ const { ComponentDialog, DialogSet, DialogTurnStatus, ChoicePrompt, TextPrompt, 
 const { LuisHelper } = require('./luisHelper');
 const { CardFactory } = require('botbuilder-core');
 
-// const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
+const WelcomeCard = require('./../Bots/resources/welcomeCard.json');
 
 const CHOICE_PROMPT = 'choicePrompt';
 const SAVE_GAME_DIALOG = 'saveDialog';
 const GET_INFO_DIALOG = 'getInfoDialog';
 const LOOP_GAME_DIALOG = 'loopGameDialog';
-const SELECT_GAME_DIALOG = 'selectGameDialog';
+const LOAD_SAVE_DIALOG = 'loadSaveDialog';
 const TEXT_PROMPT = 'TextPrompt';
 const CONFIRM_PROMPT = 'ConfirmPrompt';
 
 // const DEBUG = false;
-// const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
-const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
+const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
+// const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
 
 var axios = require('axios');
 
@@ -39,12 +39,13 @@ class MainDialog extends ComponentDialog {
 
         this.logger = logger;
         this.gameplayPrompt = 'What should we do\?';
-        this.enterEmailPrompt = "It appears that the bot can't find an email to auto-gen you an account. Please enter an email, account name, or unique identifier, and I\'ll use it to store your game-saves in a consistent location";
+        this.enterEmailPrompt = "Before we get started, It appears that the bot wasn't able to extract your email address from the current context. Please enter a unique identifier that you would like to use to store saved games and other information affiliated with your account.";
 
-        this.userEmail = null;
-
-        this.newUser = true;
+        this.email = null;
+        this.userExists = false;
         this.lastSaveFile = 'AutoSave';
+        this.title = null;
+
         this.hike = [];
         this.spell = [];
         this.wish = [];
@@ -52,19 +53,21 @@ class MainDialog extends ComponentDialog {
         this.zork2 = [];
         this.zork3 = [];
 
-        this.title = null;
-        this.newGameCommand = null;
+        this.gameSaves = [];
 
         this.addDialog(new TextPrompt(TEXT_PROMPT))
             .addDialog(new ConfirmPrompt(CONFIRM_PROMPT))
             .addDialog(new ChoicePrompt(CHOICE_PROMPT))
             .addDialog(new WaterfallDialog(GET_INFO_DIALOG, [
-                this.zorkOrNoStep.bind(this),
-                this.selectGameStep.bind(this),
                 this.checkUserEmail.bind(this),
                 this.confirmEmailStep.bind(this),
                 this.loopEmailConfirmStep.bind(this),
-                this.initUserStep.bind(this),
+                this.zorkOrNoStep.bind(this),
+                this.selectGameStep.bind(this),
+                this.setTitleStep.bind(this)
+            ]))
+            .addDialog(new WaterfallDialog(LOAD_SAVE_DIALOG, [
+                this.loadSavesStep.bind(this),
                 this.startGameStep.bind(this)
             ]))
             .addDialog(new WaterfallDialog(LOOP_GAME_DIALOG, [
@@ -94,37 +97,12 @@ class MainDialog extends ComponentDialog {
             await dialogContext.beginDialog(this.id);
         }
     }
-    async zorkOrNoStep(stepContext) {
-        return await stepContext.prompt(CHOICE_PROMPT, {
-            style: 'suggestedAction',
-            prompt: 'Hi!  Thanks so much for demoing my Senior Project.  We have a good number of games, so we\'re going to have to to a bit of tree traversal.  Would you like to play a Zork title, or another piece of Interactive Fiction?',
-            retryPrompt: 'Please say Zork, or say Other',
-            choices: ['Zork', 'Other IF']
-        });
-    }
-
-    async selectGameStep(stepContext) {
-        if (stepContext.result.value == "Zork") {
-            return await stepContext.prompt(CHOICE_PROMPT, {
-                style: 'suggestedAction',
-                prompt: 'Alright, so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
-                retryPrompt: 'Please indicate the Zork title you would like to play.',
-                choices: ['Zork One', 'Zork Two', 'Zork Three']
-            });
-        } else {
-            return await stepContext.prompt(CHOICE_PROMPT, {
-                style: 'suggestedAction',
-                prompt: 'Okay.  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
-                retryPrompt: 'You need to choose one of the listed games to play.',
-                choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
-            });
-        }
-    }
 
     async checkUserEmail(stepContext) {
-        this.title = stepContext.result.value;
+        const welcomeCard = CardFactory.adaptiveCard(WelcomeCard);
+        await stepContext.context.sendActivity({ attachments: [welcomeCard] });
         // email was set earlier in the loop
-        if (this.userEmail != null) {
+        if (this.email != null) {
             return await stepContext.next(stepContext);
         }
 
@@ -134,28 +112,12 @@ class MainDialog extends ComponentDialog {
             });
 
             if (userInfo) {
-                var email = userInfo.UserEmail;
+                await stepContext.context.sendActivity(`UserInfo Found: ${ userInfo }`);
+                var foundEmail = userInfo.email;
+                if (foundEmail && foundEmail !== '') {
+                    await stepContext.context.sendActivity(`Email found: ${ foundEmail }`);
 
-                if (email && email !== '') {
-                    let newUserResponse = await axios.get(`${ APIROOT }'/user?email=${ this.userEmail }`)
-                        .then(response => {
-                            console.log(response.data);
-                            console.log(response.status);
-                            return response.data;
-                        });
-
-                    // set all user info from the return...
-                    this.userEmail = await newUserResponse.userEmail;
-                    this.newUser = await newUserResponse.newUser;
-                    this.lastSaveFile = await newUserResponse.lastSaveFile;
-                    this.hike = await newUserResponse.hike;
-                    this.spell = await newUserResponse.spell;
-                    this.wish = await newUserResponse.wish;
-                    this.zork1 = await newUserResponse.zork1;
-                    this.zork2 = await newUserResponse.zork2;
-                    this.zork3 = await newUserResponse.zork3;
-
-                    // say hello to the new person.
+                    this.email = foundEmail;
                     return await stepContext.next(stepContext);
                 }
             }
@@ -169,56 +131,148 @@ class MainDialog extends ComponentDialog {
     // dynamic thigns that I do... Hopefully I can make custom cards for
     // them
     async confirmEmailStep(stepContext) {
-        this.userEmail = stepContext.context.activity.text;
-        return await stepContext.prompt(CONFIRM_PROMPT, {
-            prompt: `I'm going to set up an account for you at ${ this.userEmail }.  Sound good?` });
-    }
-
-    async loopEmailConfirmStep(stepContext) {
-        if (stepContext.result) {
-            await stepContext.context.sendActivity(`Registering ${ this.userEmail }`);
-            return await stepContext.next([]);
-        } else {
-            this.userEmail = null;
-            this.enterEmailPrompt = 'Please enter your preferred account name/email.';
-            return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
+        if (this.email == null) {
+            this.email = stepContext.result;
         }
-    }
-
-    async initUserStep(stepContext) {
-        // some other step
-        let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.userEmail }`)
+        let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.email }`)
             .then(response => {
                 console.log(response.data);
                 console.log(response.status);
                 return response.data;
             });
+        this.newUser = newUserResponse.newUser;
+        this.email = newUserResponse.profile.email;
+        this.hike = newUserResponse.profile.hike;
+        this.wish = newUserResponse.profile.wish;
+        this.spell = newUserResponse.profile.spell;
+        this.zork1 = newUserResponse.profile.zork1;
+        this.zork2 = newUserResponse.profile.zork2;
+        this.zork3 = newUserResponse.profile.zork3;
 
-        // Once you've gotten email,
-        // set all user info from the return...
-        this.userEmail = await newUserResponse.userEmail;
-        this.lastSaveFile = await newUserResponse.lastSaveFile;
-        this.hike = await newUserResponse.hike;
-        this.spell = await newUserResponse.spell;
-        this.wish = await newUserResponse.wish;
-        this.zork1 = await newUserResponse.zork1;
-        this.zork2 = await newUserResponse.zork2;
-        this.zork3 = await newUserResponse.zork3;
-
-        let promptObj = {
-            // style: 'heroCard',
-            style: 'suggestedAction',
-            prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
-            retryPrompt: 'You need to select one of the listed games to play.',
-            choices: ['New Game']
-        };
-        let saves = await this.getSavesForAccount(this.title);
-        
-        if (Array.isArray(saves) && saves.length) {
-            promptObj.choices = promptObj.choices.concat(saves);
+        if (this.newUser) {
+            return await stepContext.prompt(CONFIRM_PROMPT, {
+                prompt: `There was no ZorkBot account found at ${ this.email }. Should I create one there?`
+            });
+        } else {
+            return await stepContext.prompt(CONFIRM_PROMPT, {
+                prompt: `An account was found at ${ this.email }. Is this you?  If not, you will be prompted to provide an alternate account name`
+            });
         }
+    }
 
-        return await stepContext.prompt(CHOICE_PROMPT, promptObj);
+    async loopEmailConfirmStep(stepContext) {
+        if (stepContext.result) {
+            await stepContext.context.sendActivity(`Registered ${ this.email }.`);
+            return await stepContext.next(stepContext);
+        } else {
+            this.email = null;
+            this.enterEmailPrompt = 'Please enter an alternate account name.';
+            return await stepContext.replaceDialog(GET_INFO_DIALOG, []);
+        }
+    }
+
+    async tryLoadLastGameStep(stepContext) {
+        let lastGame = null;
+        if (this.lastSaveFile) {
+            switch (this.lastSaveFile) {
+            case 'zork1':
+                lastGame = 'Zork One';
+                break;
+            case 'zork2':
+                lastGame = 'Zork Two';
+                break;
+            case 'zork3':
+                lastGame = 'Zork Three';
+                break;
+            case 'hike':
+                lastGame = 'The Hitchiker\'s Guide To The Galaxy';
+                break;
+            case 'spell':
+                lastGame = 'Spellbreaker';
+                break;
+            case 'wish':
+                lastGame = 'Wishbringer';
+                break;
+            }
+        }
+        if (lastGame != null) {
+            return await stepContext.prompt(CONFIRM_PROMPT, {
+                prompt: `Your last saved game was for the game ${ lastGame }.  Would you like to continue playing ${ lastGame }?`
+            });
+        } else {
+            return await stepContext.next(stepContext);
+        }
+    }
+
+    async loadLastOrNoStep(stepContext) {
+        if (stepContext.result) {
+            stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);
+        } else {
+            return await stepContext.next(await stepContext.sendActivity('No recent saves found.'));
+        }
+    }
+
+    async zorkOrNoStep(stepContext) {
+        return await stepContext.prompt(CHOICE_PROMPT, {
+            style: 'suggestedAction',
+            prompt: 'Would you like to play a Zork title, or another work of Interactive Fiction?',
+            retryPrompt: 'Please say Zork, or Other I.F.',
+            choices: ['Zork', 'Other I.F.']
+        });
+    }
+
+    async selectGameStep(stepContext) {
+        let zorkprompt = {
+            style: 'suggestedAction',
+            prompt: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
+            retryPrompt: 'Please indicate the Zork title you would like to play.',
+            choices: ['Zork One', 'Zork Two', 'Zork Three']
+        }
+        if (stepContext.result.value == 'Zork') {
+            return await stepContext.prompt(CHOICE_PROMPT, {
+                style: 'suggestedAction',
+                prompt: 'Alright! so, among the Zork Titles, would you like to play Zork One, Zork Two, or Zork Three?',
+                retryPrompt: 'Please indicate the Zork title you would like to play.',
+                choices: ['Zork One', 'Zork Two', 'Zork Three']
+            });
+        } else {
+            return await stepContext.prompt(CHOICE_PROMPT, {
+                style: 'suggestedAction',
+                prompt: 'Alright!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
+                retryPrompt: 'You need to choose one of the listed games to play.',
+                choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
+            });
+        }
+    }
+
+    async setTitleStep(stepContext) {
+        switch(stepContext.result.value){
+        case 'Zork One':
+            this.title = 'zork1';
+            this.gameSaves = this.zork1;
+            break;
+        case 'Zork Two':
+            this.title = 'zork2';
+            this.gameSaves = this.zork2;
+            break;
+        case 'Zork Three':
+            this.title = 'zork3';
+            this.gameSaves = this.zork3;
+            break;
+        case 'Hitchhiker\'s Guide':
+            this.title = 'hike';
+            this.gameSaves = this.hike;
+            break;
+        case 'Spellbreaker':
+            this.title = 'zork1';
+            this.gameSaves = this.spell;
+            break;
+        case 'Wishbringer':
+            this.title = 'wish';
+            this.gameSaves =  this.wish;
+            break;
+        }
+        return await stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);         
     }
 
     async getSavesForAccount(title) {
@@ -238,25 +292,36 @@ class MainDialog extends ComponentDialog {
         }
     }
 
+    async loadSavesStep(stepContext) {
+        this.gameSaves.push('New Game');
+        let promptObj = {
+            // style: 'heroCard',
+            style: 'suggestedAction',
+            prompt: 'Which save file would you like to load?  Selecting New Game will delete any AutoSaves that you might have present',
+            retryPrompt: 'You need to select one of the listed games to play.',
+            choices: this.gameSaves
+        };
+        return await stepContext.prompt(CHOICE_PROMPT, promptObj);
+        //return await stepContext.prompt(TEXT_PROMPT, "test prompt");
+    }
+
     async startGameStep(stepContext) {
-        let save = stepContext.context.activity.text;
+        let save = stepContext.result.value;
         let userObject = {};
+
         if (save == 'New Game') {
-            userObject = await axios.get(`${ APIROOT }/newGame?title=${ this.title }&email=${ this.userEmail }`)
+            userObject = await axios.get(`${ APIROOT }/newGame?title=${ this.title }&email=${ this.email }`)
                 .then(response => {
                     console.log(response.data); // ex.: { user: 'Your User'}
                     console.log(response.status); // ex.: 200
                     return response.data;
                 });
-            console.log(userObject);
-            save = 'AutoSave';
-
             await stepContext.context.sendActivity(userObject.titleInfo);
             await stepContext.context.sendActivity(userObject.firstLine);
             this.gameplayPrompt = 'What would you like to do?';
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         } else {
-            userObject = await axios.get(`${ APIROOT }/start?title=${ this.title }&email=${ this.userEmail }&save=${ save }`)
+            userObject = await axios.get(`${ APIROOT }/start?title=${ this.title }&email=${ this.email }&save=${ save }`)
                 .then(response => {
                     console.log(response.data); // ex.: { user: 'Your User'}
                     console.log(response.status); // ex.: 200
@@ -283,7 +348,7 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
-        let response = await axios.get(`${ APIROOT }/action?title=${ this.title }&email=${ this.userEmail }&action=${ command.text }`)
+        let response = await axios.get(`${ APIROOT }/action?title=${ this.title }&email=${ this.email }&action=${ command.text }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
@@ -291,10 +356,11 @@ class MainDialog extends ComponentDialog {
             });
 
         this.gameplayPrompt = await response.cmdOutput;
-        if (command.text == 'exit program') {
+        if ((/stop zorkbot/i).test(command.text)) {
+            await stepContext.context.sendActivity(`Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave,`);
             return await stepContext.endDialog(stepContext);
         // TODO: pull save intent from LUIS
-        } else if ((command.text == 'save game') || (command.text == 'save')) {
+        } else if (((/save game/i).test(command.text)) || ((/save/i).test(command.text))) {
             return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
         } else {
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
@@ -302,36 +368,33 @@ class MainDialog extends ComponentDialog {
     }
 
     async confirmSaveStep(stepContext) {
-        const saveCheckCard = CardFactory.adaptiveCard(this.adaptiveCard);
-        return await stepContext.prompt(TEXT_PROMPT, {
-            prompt: await stepContext.context.sendActivity({
-                attachments: [saveCheckCard] }) });
+        return await stepContext.prompt(CONFIRM_PROMPT, {
+            prompt: 'Would you like to create a new save file?  The bot game is auto-saving after each move, but through this dialogue you can crystalize a certain save location to return to it in the future.'
+        });
     }
 
     async promptSaveNameStep(stepContext) {
         // TODO: Set this as a unique call to save manually
-        if (stepContext.context.activity.text == 'yes') {
+        if (stepContext.result) {
             return await stepContext.prompt(TEXT_PROMPT, {
-                prompt: 'Okay.  What would you like to name your save file?'
+                prompt: 'What would you like to name your save file?'
             });
+        } else {
+            this.gameplayPrompt = 'New Save Creation Cancelled.  Continuing game.   What would you like to do?';
+            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
-        this.gameplayPrompt = 'New Save Creation Cancelled.  Continuing game.   What would you like to do?';
-        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
-        // do a save --> make it a special call that I just intercept.
     }
 
     async sendSaveStep(stepContext) {
-        await axios.get(`${ APIROOT }/save?title=${ this.title }&email=${ this.userEmail }&save=${ stepContext.context.activity.text }`)
+        await axios.get(`${ APIROOT }/save?title=${ this.title }&email=${ this.email }&save=${ stepContext.result }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
                 return response.data;
             });
-        this.gameplayPrompt = `New Save created at ${ stepContext.context.activity.text }`;
+        this.gameplayPrompt = `New Save created at ${ stepContext.result }`;
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
-
-
 
     async buildSaveFilesCard(gameTitle, saveList) {
         let newAdaptiveCard =
@@ -393,7 +456,7 @@ class MainDialog extends ComponentDialog {
                     'spacing': 'medium',
                     'size': 'default',
                     'weight': 'bolder',
-                    'text': `Save: ${ this.userEmail }`,
+                    'text': `Save: ${ this.email }`,
                     'wrap': true,
                     'maxLines': 0
                 },
