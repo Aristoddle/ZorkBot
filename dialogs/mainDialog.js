@@ -451,12 +451,28 @@ class MainDialog extends ComponentDialog {
             this.logger.log('LUIS extracted these command details: ', command);
         }
 
+        if (!command.text) {
+            this.gameplayPrompt = "I'm sorry--I wasn't able to get that.  What would you like to do?";
+            return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
+        }
+
         if (((/zorkbot repeat/i).test(command.text)) || ((/save/i).test(command.text))) {
             await stepContext.context.sendActivity({
                 text: this.gameplayPrompt,
                 speak: this.gameplayPrompt,
                 inputHint: 'expectingInput'
             });
+            return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
+        } else if ((/stop ZorkBot/i).test(command.text)) {
+            await stepContext.context.sendActivity({
+                text: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave.`,
+                speak: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave.`,
+                inputHint: 'ignoringInput'
+            });
+            return await stepContext.endDialog(stepContext);
+        }
+        // TODO: Set up a "saving" intent
+        else if (((/save game/i).test(command.text)) || ((/save/i).test(command.text))) {
             return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
         }
 
@@ -474,20 +490,7 @@ class MainDialog extends ComponentDialog {
                 return response.data;
             });
 
-        this.gameplayPrompt = await response.cmdOutput;
-        if ((/stop ZorkBot/i).test(command.text)) {
-            await stepContext.context.sendActivity({
-                text: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave.`,
-                speak: `Thanks for playing.  You can return to this game by navigating back to ${ this.title }, and selecting AutoSave.`,
-                inputHint: 'ignoringInput'
-            });
-            return await stepContext.endDialog(stepContext);
-        // TODO: pull save intent from LUIS
-        } else if (((/save game/i).test(command.text)) || ((/save/i).test(command.text))) {
-            return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
-        } else {
-            return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
-        }
+        return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
     async createResponse(louisCommand) {
