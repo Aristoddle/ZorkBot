@@ -489,7 +489,7 @@ class MainDialog extends ComponentDialog {
                 console.log(response.status); // ex.: 200
                 return response.data;
             });
-
+        this.gameplayPrompt = response.cmdOutput;
         return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
     }
 
