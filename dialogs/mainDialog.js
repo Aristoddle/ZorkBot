@@ -465,6 +465,7 @@ class MainDialog extends ComponentDialog {
         } else {
             constructedString = command.text;
         }
+        
         let response = await axios.get(`${ APIROOT }/action?title=${ this.gameID }&email=${ this.email }&action=${ constructedString }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
