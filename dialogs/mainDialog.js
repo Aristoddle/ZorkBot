@@ -28,7 +28,7 @@ const CONFIRM_PROMPT = 'ConfirmPrompt';
 const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
 var axios = require('axios');
 
-const LOUIS_ACTIONS = false;
+const LUIS_ACTIONS = false;
 
 class MainDialog extends ComponentDialog {
     constructor(logger) {
@@ -461,7 +461,7 @@ class MainDialog extends ComponentDialog {
         }
 
         // here, we're just blind calling the thing... let's learn more about LUIS entities
-        if (LOUIS_ACTIONS) {
+        if (LUIS_ACTIONS) {
             constructedString = await this.createResponse(command);
         } else {
             constructedString = command.text;
