@@ -1,4 +1,6 @@
-# What is ZorkBot
+*To view a more attractive version of this page, visit [`The ZorkBot GitHub Website`](https://aristoddle.github.io/ZorkBot/.)
+
+# What is a ZorkBot?
 This repo holds the Codebase for the node.js based  [Microsoft Bot Framework][1]. application that I  built to play Zork, The Hitchiker's Guide To The Galaxy, and a series of other InfoCom classic Interactive Fiction titles.
 
 On top of a series of manual optimizations that are made before any command from the user hits the server, ZorkBot leverages a series of models that I have trained for [LUIS.ai][11] to help concert human speech down to commands that these games can better comprehend.
