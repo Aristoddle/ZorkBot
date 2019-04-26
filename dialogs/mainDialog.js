@@ -26,8 +26,9 @@ const CONFIRM_PROMPT = 'ConfirmPrompt';
 // const DEBUG = false;
 // const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com:443';
 const APIROOT = 'http://zorkhub.eastus.cloudapp.azure.com';
-
 var axios = require('axios');
+
+const LOUIS_ACTIONS = false;
 
 class MainDialog extends ComponentDialog {
     constructor(logger) {
@@ -312,8 +313,8 @@ class MainDialog extends ComponentDialog {
                 prompt: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 speak: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 retryPrompt: 'You need to choose one of the listed games to play.',
-                retrySpeak: 'Please Say, The Hitchhiker\'s Guide, Spellbreaker, or Wishbringer',
-                choices: ['The Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
+                retrySpeak: 'Please Say, Hitchhiker\'s Guide, Spellbreaker, or Wishbringer',
+                choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
             });
         }
     }
@@ -440,6 +441,7 @@ class MainDialog extends ComponentDialog {
     }
 
     async processCommandStep(stepContext) {
+        let constructedString = "";
         let command = {};
         if (process.env.LuisAppId &&
             process.env.LuisAPIKey &&
@@ -459,7 +461,14 @@ class MainDialog extends ComponentDialog {
 
         //here, we're just blind calling the thing... let's learn more about LUIS entities
         
-        let response = await axios.get(`${ APIROOT }/action?title=${ this.gameID }&email=${ this.email }&action=${ command.text }`)
+        if (LOUIS_ACTIONS){
+            constructedString = createResponse(command);
+        } else {
+            constructedString = command.text;
+        }
+        
+
+        let response = await axios.get(`${ APIROOT }/action?title=${ this.gameID }&email=${ this.email }&action=${ constructedString }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
