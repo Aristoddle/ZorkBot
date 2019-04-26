@@ -131,7 +131,7 @@ class MainDialog extends ComponentDialog {
             if (userInfo) {
                 var foundEmail = await userInfo.email;
                 if (foundEmail && foundEmail !== '') {
-                    this.email = await foundEmail;
+                    this.email = await foundEmail.replace('.', '');
                     this.systemProvidedEmail = true;
                     return await stepContext.next(stepContext);
                 }
@@ -156,7 +156,7 @@ class MainDialog extends ComponentDialog {
 
     async confirmEmailStep(stepContext) {
         if (this.email == null) {
-            this.email = await stepContext.result;
+            this.email = await stepContext.result.replace('.', '');
         }
         let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.email }`)
             .then(response => {
@@ -401,6 +401,7 @@ class MainDialog extends ComponentDialog {
     async startGameStep(stepContext) {
         let save = await stepContext.result.value;
         let userObject = {};
+
 
         if (save == 'New Game') {
             userObject = await axios.get(`${ APIROOT }/newGame?title=${ this.gameID }&email=${ this.email }`)
