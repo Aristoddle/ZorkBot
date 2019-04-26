@@ -45,6 +45,7 @@ class MainDialog extends ComponentDialog {
 
         this.email = null;
         this.userExists = false;
+        this.gameID = null;
         this.title = null;
 
         this.hike = [];
@@ -155,7 +156,7 @@ class MainDialog extends ComponentDialog {
         if (this.email == null) {
             this.email = await stepContext.result;
         }
-        let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.email }`, `${ APIROOT }/user?email=${ this.email }`)
+        let newUserResponse = await axios.get(`${ APIROOT }/user?email=${ this.email }`)
             .then(response => {
                 console.log(response.data);
                 console.log(response.status);
@@ -183,8 +184,8 @@ class MainDialog extends ComponentDialog {
         } else {
             if (this.systemProvidedEmail) {
                 await stepContext.context.sendActivity({
-                    text: `An account has already been created for ${ this.email }.  Logging in...`,
-                    speak: `An account has already been created for ${ this.email }.  Logging in...`,
+                    text: `I was able to pull your email from the application settings, and it appears that an account has already been created for ${ this.email }.  Logging in...`,
+                    speak: `I was able to pull your email from the application settings, and it appears that an account has already been created for ${ this.email }.  Logging in...`,
                     inputHint: 'ignoringInput'
                 });
                 return await stepContext.next(stepContext);
@@ -311,50 +312,50 @@ class MainDialog extends ComponentDialog {
                 prompt: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 speak: 'Cool!  The other games that we have to play are The Hitchhiker\'s Guide To The Galaxy, Spellbreaker, and Wishbringer.  Which one would you like to play?',
                 retryPrompt: 'You need to choose one of the listed games to play.',
-                retrySpeak: 'Please Say, Hitchhiker\'s Guide, Spellbreaker, or Wishbringer',
-                choices: ['Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
+                retrySpeak: 'Please Say, The Hitchhiker\'s Guide, Spellbreaker, or Wishbringer',
+                choices: ['The Hitchhiker\'s Guide', 'Spellbreaker', 'Wishbringer']
             });
         }
     }
 
     async setTitleStep(stepContext) {
-        if (process.env.GameChoiceLuisAppID &&
-            process.env.GameChoiceLuisAPIKey &&
-            process.env.GameChoiceLuisAPIHostName) {
-            let game = await PickGameLuis.executeLuisQuery(this.logger, stepContext.context);
-            this.title = await game.intent;
-            this.gameSaves = await this[game.intent];
-        }
-        if (this.title == null) {
-            switch (stepContext.result.value) {
-            case 'Zork One':
-                this.title = 'zork1';
-                this.gameSaves = this.zork1;
-                break;
-            case 'Zork Two':
-                this.title = 'zork2';
-                this.gameSaves = this.zork2;
-                break;
-            case 'Zork Three':
-                this.title = 'zork3';
-                this.gameSaves = this.zork3;
-                break;
-            case 'Hitchhiker\'s Guide':
-                this.title = 'hike';
-                this.gameSaves = this.hike;
-                break;
-            case 'Spellbreaker':
-                this.title = 'spell';
-                this.gameSaves = this.spell;
-                break;
-            case 'Wishbringer':
-                this.title = 'wish';
-                this.gameSaves = this.wish;
-                break;
+        try {
+            if (process.env.GameChoiceLuisAppID &&
+                process.env.GameChoiceLuisAPIKey &&
+                process.env.GameChoiceLuisAPIHostName) {
+                let game = await PickGameLuis.executeLuisQuery(this.logger, stepContext.context);
+                this.gameID = await game.intent;
             }
+        } catch (err) {
+            console.log('err');
         }
 
-
+        switch (this.gameID) {
+        case 'zork1':
+            this.title = 'Zork One';
+            this.gameSaves = this.zork1;
+            break;
+        case 'zork2':
+            this.title = 'Zork Two';
+            this.gameSaves = this.zork2;
+            break;
+        case 'zork3':
+            this.title = 'Zork Three';
+            this.gameSaves = this.zork3;
+            break;
+        case 'hike':
+            this.title = 'The Hitchhiker\'s Guide To The Galaxy';
+            this.gameSaves = this.hike;
+            break;
+        case 'spell':
+            this.title = 'Spellbreaker';
+            this.gameSaves = this.spell;
+            break;
+        case 'wish':
+            this.title = 'Wishbringer';
+            this.gameSaves = this.wish;
+            break;
+        }
         return await stepContext.replaceDialog(LOAD_SAVE_DIALOG, []);
     }
 
@@ -400,14 +401,14 @@ class MainDialog extends ComponentDialog {
         let userObject = {};
 
         if (save == 'New Game') {
-            userObject = await axios.get(`${ APIROOT }/newGame?title=${ this.title }&email=${ this.email }`)
+            userObject = await axios.get(`${ APIROOT }/newGame?title=${ this.gameID }&email=${ this.email }`)
                 .then(response => {
                     console.log(response.data); // ex.: { user: 'Your User'}
                     console.log(response.status); // ex.: 200
                     return response.data;
                 });
         } else {
-            userObject = await axios.get(`${ APIROOT }/start?title=${ this.title }&email=${ this.email }&save=${ save }`)
+            userObject = await axios.get(`${ APIROOT }/start?title=${ this.gameID }&email=${ this.email }&save=${ save }`)
                 .then(response => {
                     console.log(response.data); // ex.: { user: 'Your User'}
                     console.log(response.status); // ex.: 200
@@ -456,7 +457,9 @@ class MainDialog extends ComponentDialog {
             return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
         }
 
-        let response = await axios.get(`${ APIROOT }/action?title=${ this.title }&email=${ this.email }&action=${ command.text }`)
+        //here, we're just blind calling the thing... let's learn more about LUIS entities
+        
+        let response = await axios.get(`${ APIROOT }/action?title=${ this.gameID }&email=${ this.email }&action=${ command.text }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
@@ -508,7 +511,7 @@ class MainDialog extends ComponentDialog {
     }
 
     async sendSaveStep(stepContext) {
-        await axios.get(`${ APIROOT }/save?title=${ this.title }&email=${ this.email }&save=${ stepContext.result }`)
+        await axios.get(`${ APIROOT }/save?title=${ this.gameID }&email=${ this.email }&save=${ stepContext.result }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
                 console.log(response.status); // ex.: 200
