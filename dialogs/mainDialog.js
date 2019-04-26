@@ -126,7 +126,8 @@ class MainDialog extends ComponentDialog {
             var userInfo = await stepContext.context.activity.entities.find((e) => {
                 return e.type === 'UserInfo';
             });
-
+            // TODO: here's wehre the user info is -- check if you're on mobile and stuff...
+            // something needs to be done to control that on-mobile call stack
             if (userInfo) {
                 var foundEmail = await userInfo.email;
                 if (foundEmail && foundEmail !== '') {
@@ -465,7 +466,7 @@ class MainDialog extends ComponentDialog {
         } else {
             constructedString = command.text;
         }
-        
+
         let response = await axios.get(`${ APIROOT }/action?title=${ this.gameID }&email=${ this.email }&action=${ constructedString }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
