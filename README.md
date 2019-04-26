@@ -1,15 +1,10 @@
-# core-bot
-Demonstrate the core capabilities of the Microsoft Bot Framework
+# ZorkBot
+Codebase for the node.js based  [Microsoft Bot Framework][1]. application that I  built to play Zork, The Hitchiker's Guide To The Galaxy,
+and a series of other InfoCom classic Interactive Fiction titles.
 
-This bot has been created using [Bot Framework][1].
+On top of a series of manual optimizations that are made before any command from the user hits the server, ZorkBot leverages a series of models that I have trained for [LUIS.ai][11] to help concert human speech down to commands that these games can better comprehend.
 
-This samples shows how to:
-- Use [LUIS][11] to implement core AI capabilities
-- Implement a multi-turn conversation using Dialogs
-- Handle user interruptions for such things as Help or Cancel
-- Prompt for and validate requests for information from the user
-- Demonstrate how to handle any unexpected errors
-
+For those with a screen through which they can interface with this app via Skype, the Cortana app for Windows, Android, iOS, Microsoft Teams, Facebook Messenger, Slack, or any other, I highly recommend it.  This application has been built with a screenless interface in mind, but due to a series of interactive cards that I have built for choice prompts, this application can be much more enjoyable with a screen.
 
 ## Prerequisites
 - [Node.js][4] version 10.14 or higher
