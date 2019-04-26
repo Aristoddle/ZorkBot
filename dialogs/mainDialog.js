@@ -441,7 +441,7 @@ class MainDialog extends ComponentDialog {
     }
 
     async processCommandStep(stepContext) {
-        let constructedString = "";
+        let constructedString = '';
         let command = {};
         if (process.env.LuisAppId &&
             process.env.LuisAPIKey &&
@@ -459,15 +459,12 @@ class MainDialog extends ComponentDialog {
             return await stepContext.replaceDialog(SAVE_GAME_DIALOG, []);
         }
 
-        //here, we're just blind calling the thing... let's learn more about LUIS entities
-        
-        if (LOUIS_ACTIONS){
-            constructedString = createResponse(command);
+        // here, we're just blind calling the thing... let's learn more about LUIS entities
+        if (LOUIS_ACTIONS) {
+            constructedString = await this.createResponse(command);
         } else {
             constructedString = command.text;
         }
-        
-
         let response = await axios.get(`${ APIROOT }/action?title=${ this.gameID }&email=${ this.email }&action=${ constructedString }`)
             .then(response => {
                 console.log(response.data); // ex.: { user: 'Your User'}
@@ -489,6 +486,10 @@ class MainDialog extends ComponentDialog {
         } else {
             return await stepContext.replaceDialog(LOOP_GAME_DIALOG, []);
         }
+    }
+
+    async createResponse(louisCommand) {
+        return louisCommand;
     }
 
     async confirmSaveStep(stepContext) {
